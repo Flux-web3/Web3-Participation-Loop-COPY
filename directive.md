@@ -2,7 +2,7 @@
 
 ## 1. Objective
 
-Build and demonstrate a measurable Web3 participation loop that moves invited participants through a waitlist, disclosure and review process into qualified participation and legitimate business follow-up.
+Build and demonstrate a measurable Web3 participation loop that moves participants — acquired through open channels — through a waitlist, disclosure and review process into qualified participation and legitimate business follow-up.
 
 The system must preserve a low-friction off-chain participation path while supporting optional on-chain acknowledgement.
 
@@ -12,13 +12,20 @@ Disclosure/review → qualified reviewer.
 
 ## 3. Core Journey
 
-Invitation → Waitlist → Disclosure → Review → Qualification → Business Follow-up → Optional Acknowledgement.
+Acquisition → Waitlist → Disclosure → Review → Qualification.
+
+After qualification, two independent branches run in parallel:
+
+- Qualified Review → Business Follow-up
+- Qualified Review → Optional On-chain Acknowledgement
+
+Neither branch depends on the other, and neither is a precondition for the other. Acknowledgement does not occur after business follow-up.
 
 ## 4. Scope
 
 The prototype covers:
 
-- invitation;
+- acquisition (open channel entry);
 - waitlist registration;
 - disclosure access;
 - structured review;
@@ -33,13 +40,13 @@ The prototype covers:
 
 ## 5. Participation Eligibility
 
-A participant must:
+A participant becomes a qualified reviewer by:
 
-1. receive an invitation;
-2. join the waitlist;
-3. be eligible for the review round;
-4. access the disclosure;
-5. submit a review that satisfies the qualification rules.
+1. entering through an acquisition channel (open — no personal invitation is required);
+2. joining the waitlist;
+3. being eligible for the review round (a synthetic attribute that gates qualification, not entry);
+4. accessing the disclosure;
+5. submitting a review that satisfies the qualification rules.
 
 ## 6. Qualified Review Definition
 
@@ -111,13 +118,13 @@ Wallet activity is not business conversion.
 
 ## 13. Event Schema
 
-Track:
+Track (append-only; the log is the single source of truth and every metric is derived from it):
 
-- invitation_sent
+- acquisition_visited
 - waitlist_joined
 - disclosure_opened
-- review_started
 - review_submitted
+- review_evaluated
 - review_qualified
 - review_rejected
 - duplicate_detected
@@ -130,11 +137,13 @@ Track:
 - acknowledgement_succeeded
 - acknowledgement_failed
 
+These are the conceptual event names. The prototype implements them as a typed, append-only event log (a PascalCase discriminated union, e.g. `AcquisitionVisited`, `ReviewEvaluated`, `WalletAcknowledgementSucceeded`); the vocabulary above maps one-to-one onto those types.
+
 ## 14. Core Metrics
 
 ### Waitlist Activation Rate
 
-Waitlist Joins / Invitations Sent
+Waitlist Joins / Acquisition Entries
 
 ### Disclosure Engagement Rate
 
@@ -150,7 +159,7 @@ Qualified Reviews / Submitted Reviews
 
 ### Qualified Participation Rate
 
-Qualified Reviews / Eligible Invited Participants
+Qualified Reviews / Eligible Participants
 
 ### Business Follow-up Conversion
 
@@ -168,7 +177,7 @@ The prototype uses synthetic simulation data.
 
 Example:
 
-- 100 invitations;
+- 100 acquisition entries;
 - 72 waitlist joins;
 - 58 disclosure viewers;
 - 42 review submissions;
@@ -201,7 +210,7 @@ Kill when the minimum sample threshold is reached without meaningful improvement
 
 The prototype must demonstrate:
 
-1. invitation;
+1. acquisition;
 2. waitlist;
 3. disclosure;
 4. review;
@@ -230,6 +239,18 @@ The implementation is complete when:
 - funnel calculations are reproducible;
 - all submission links work;
 - the prototype can be demonstrated in under five minutes.
+
+## 20. Reconciliation Note
+
+This directive was reconciled with the corrected canonical participation model:
+
+- **Entry model:** open acquisition channels replace personal invitation as the entry point; no invitation token gates eligibility (affects §1, §3, §4, §5, §18 and the submission checklist).
+- **Post-qualification branches:** business follow-up and optional on-chain acknowledgement are independent; acknowledgement does not occur after follow-up (§3).
+- **Event schema (§13):** `invitation_sent` → `acquisition_visited`; `review_started` removed (not implemented — the funnel measures `disclosure_opened → review_submitted` directly); `review_evaluated` added to record the seven-gate evaluation.
+- **Metrics (§14):** Waitlist Activation uses *Acquisition Entries*; Qualified Participation uses *Eligible Participants*.
+- **Baseline (§15):** "100 invitations" → "100 acquisition entries" (all downstream counts unchanged).
+
+Unchanged: the primary bottleneck, the qualified-review definition, incentive limits, wallet optionality, the business-conversion definition, targets, stop rules and non-goals.
 
 ---
 
@@ -327,7 +348,7 @@ The prototype does not:
 ## Submission Verification
 
 - [ ] Prototype works
-- [ ] Invitation → waitlist flow works
+- [ ] Acquisition → waitlist flow works
 - [ ] Valid review qualifies
 - [ ] Invalid review rejected
 - [ ] Duplicate handled

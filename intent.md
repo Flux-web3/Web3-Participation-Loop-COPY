@@ -2,13 +2,13 @@
 
 ## 1. Why This Problem?
 
-The fictional platform is designed to invite people into a waitlist and move them through a project-disclosure and review journey.
+The fictional platform acquires participants through open acquisition channels (direct, referral, campaign, community, partner, social, other) into a waitlist and moves them through a project-disclosure and review journey. Entry does not require a personal invitation — the acquisition channel is recorded for attribution and does not determine eligibility.
 
 The business objective is not simply to increase registrations, disclosure views, wallet connections or raw review submissions. The valuable outcome is meaningful participation that produces a useful review and can create a legitimate business follow-up.
 
 I considered four bottlenecks:
 
-1. Invitation → waitlist activation
+1. Acquisition → waitlist activation
 2. Waitlist → disclosure engagement
 3. Disclosure/review → qualified reviewer
 4. Qualified reviewer → business follow-up
@@ -19,14 +19,14 @@ The selected bottleneck provides a clear connection between user value and busin
 
 ## 2. Bottlenecks Considered
 
-| Bottleneck                           | User Value | Business Conversion | Confidence | Ease | Total |
-| ------------------------------------ | ---------: | ------------------: | ---------: | ---: | ----: |
-| Invitation → Waitlist                |          3 |                   4 |          3 |    4 |     9 |
-| Waitlist → Disclosure                |          4 |                   3 |          2 |    3 |     8 |
-| Disclosure/Review → Qualified Review |          5 |                   5 |          4 |    4 |    25 |
-| Qualified Review → Follow-up         |          4 |                   5 |          3 |    3 |    20 |
+| Bottleneck                           | User Value | Business Conversion | Confidence | Effort | Total |
+| ------------------------------------ | ---------: | ------------------: | ---------: | -----: | ----: |
+| Acquisition → Waitlist               |          3 |                   4 |          3 |      4 |     9 |
+| Waitlist → Disclosure                |          4 |                   3 |          2 |      3 |     8 |
+| Disclosure/Review → Qualified Review |          5 |                   5 |          4 |      4 |    25 |
+| Qualified Review → Follow-up         |          4 |                   5 |          3 |      3 |    20 |
 
-Scores use a 1–5 scale and represent prioritization assumptions for the fictional assessment, Calculated as: 
+Scores use a 1–5 scale and represent prioritization assumptions for the fictional assessment, calculated as:
 Value × Conversion × Confidence ÷ Effort
 
 ## 3. Selected Bottleneck
@@ -48,13 +48,13 @@ The prototype therefore creates an explicit qualification layer between raw part
 
 ## 4. Affected Users
 
-### Invited Participant
+### Acquired Participant
 
-A person invited to join the review waitlist.
+A person who arrives through an acquisition channel and may join the review waitlist.
 
 ### Waitlisted Participant
 
-An invited person who has registered for the review opportunity.
+An acquired person who has registered for the review opportunity.
 
 ### Reviewer
 
@@ -133,10 +133,14 @@ This Quest does not attempt to:
 
 ## 10. Key Assumptions
 
-1. The platform can invite participants into the waitlist.
+1. The platform can acquire participants into the waitlist through open acquisition channels.
 2. Participants can access the fictional disclosure.
 3. Participants can submit structured reviews.
 4. A review can be evaluated against explicit qualification rules.
 5. Business follow-up can be represented as an operational event.
 6. Wallet acknowledgement can be simulated.
 7. All participants and outcomes in the prototype are synthetic.
+
+## 11. Reconciliation Note
+
+This document was reconciled (2026-09-18) with the updated canonical participation model, which uses **open acquisition channels** as the entry point rather than a mandatory personal invitation. The change is terminological and structural only — entry framing (§1), participant labels (§4), and assumption 1 (§10). It does **not** alter the selected bottleneck, its score (25 = 5 × 5 × 4 ÷ 4), the prioritization logic, the criteria, or any non-goal. The early-funnel alternative previously labelled *Invitation → Waitlist* is retained as *Acquisition → Waitlist* with its original score (9) unchanged, because it describes the same top-of-funnel activation step under corrected terminology. Wallet acknowledgement remains a separate, optional activity and is not a business conversion (§8), consistent with the canonical model's two independent post-qualification branches.
