@@ -38,6 +38,3 @@ Thumbs.db
 
 # Original assessment archive (kept out of version control)
 web3-participation-loop-main.zip
-
-.vercel
-.env*
