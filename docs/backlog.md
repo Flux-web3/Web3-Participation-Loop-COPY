@@ -3,7 +3,7 @@
 ## Context / Scope
 
 This backlog defines the next iteration for the Web3 participation loop prototype
-(working prototype: https://web3-participation-loop-main.vercel.app). The primary
+(working prototype: https://web3-participation-loop-copy.vercel.app). The primary
 bottleneck remains **disclosure/review → qualified reviewer**, with a planning target of
 moving **qualified participation toward 35–40%** while keeping quality and abuse guardrails
 acceptable (a simulation target, not a forecast).

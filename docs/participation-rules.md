@@ -203,7 +203,7 @@ No incentive that implies financial value or guaranteed reward may be offered.
 
 ## Prototype Mapping
 
-The rules above are demonstrated in the working prototype at **https://web3-participation-loop-main.vercel.app**:
+The rules above are demonstrated in the working prototype at **https://web3-participation-loop-copy.vercel.app**:
 
 - The five-stage core journey is shown under the **#journey** route (acquisition channel selection, waitlist registration, disclosure access and version, review submission with the three required fields, and the seven-gate qualification result).
 - Qualified and rejected outcomes, rejection reasons, duplicate detection, abuse classification, wallet outcomes (`not_attempted`/`declined`/`failed`/`success`), acknowledgement success and failure, and follow-up creation are demonstrated in the journey against synthetic data.

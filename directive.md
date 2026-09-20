@@ -266,7 +266,7 @@ https://github.com/Flux-web3/Web3-Participation-Loop-COPY/blob/main/docs/partici
 
 ### Working Prototype
 
-https://web3-participation-loop-main.vercel.app
+https://web3-participation-loop-copy.vercel.app
 
 ### PRD
 
@@ -282,7 +282,7 @@ https://github.com/Flux-web3/Web3-Participation-Loop-COPY/blob/main/data/synthet
 
 ### Dashboard
 
-https://web3-participation-loop-main.vercel.app/#dashboard
+https://web3-participation-loop-copy.vercel.app/#dashboard
 
 ### Experiment Brief
 
@@ -320,13 +320,13 @@ All checks below were actually run in the final QA pass (2026-09-20).
 - **Typecheck:** `tsc --noEmit` — clean, no errors (`prototype/`).
 - **Tests:** Vitest — 9 test files, **98/98 tests passing** (`prototype/`).
 - **Build:** `vite build` — success, 36 modules; `dist/index.html` 1.53 kB, `assets/index-CGEhekz0.css` 5.07 kB, `assets/index-DrTqkm0w.js` 49.32 kB (gzip 14.28 kB).
-- **Production smoke:** `https://web3-participation-loop-main.vercel.app` → HTTP 200, `<title>MUST Company - Participation Loop Prototype</title>`, JS bundle served. `https://web3-participation-loop.vercel.app` (mirror deployment) → HTTP 200, same title.
+- **Production smoke:** `https://web3-participation-loop-copy.vercel.app` (primary / COPY repo deployment) → HTTP 200, `<title>MUST Company - Participation Loop Prototype</title>`, JS bundle served. `https://web3-participation-loop-main.vercel.app` (mirror / main repo deployment) → HTTP 200, same title.
 - **Dataset integrity:** `data/synthetic-participants.csv` verified consistent with the docs' baseline (20 acquisitions; 119 events; 7 rejection reasons; one record set).
 - **Secrets scan:** `git grep` over HEAD for `eyJ…`, `sk-…`, `AKIA…`, `BEGIN … PRIVATE KEY`, `VERCEL_`, `SERVICE_ROLE` → no matches. No `process.env` / `import.meta.env` usage in tracked source. No credentials or API keys are committed. The runtime-locally-generated `prototype/.env.local` (Vercel OIDC token) is gitignored and was removed from disk; no such file is committed.
-- **Deployment layout:** one production deployment per repository, both READY:
-  - Primary repo → Vercel project `web3-participation-loop-main` (`rootDirectory=prototype`, framework vite, output `dist`) → alias `web3-participation-loop-main.vercel.app`.
-  - Mirror repo → Vercel project `web3-participation-loop` (same settings) → alias `web3-participation-loop.vercel.app`.
-  - A duplicate, misconfigured project (`web3-participation-loop-copy`) that produced failing deployments/404 URLs was deleted; GitHub deployment statuses for both repos updated to `success` against the live aliases.
+- **Deployment layout:** one production deployment per repository, both READY, each under its own correctly-named project:
+  - Primary repo (`Flux-web3/Web3-Participation-Loop-COPY`) → Vercel project `web3-participation-loop-copy` (`rootDirectory=prototype`, framework vite, output `dist`) → alias `web3-participation-loop-copy.vercel.app`.
+  - Mirror repo (`Flux-web3/web3-participation-loop`) → Vercel project `web3-participation-loop-main` (same settings) → alias `web3-participation-loop-main.vercel.app` (legacy alias `web3-participation-loop.vercel.app` still serves the same deployment).
+  - Reroute cleanup: the misconfigured duplicate `web3-participation-loop-copy` project and the legacy COPY-linked `web3-participation-loop-main` project were deleted; the mirror's project was renamed to its own name; GitHub deployment statuses on both repos updated to `success` against the live aliases.
 - **npm audit:** `npm audit` reports 5 vulnerabilities in dev dependencies (high/medium, build-time only, no runtime exposure). Not force-fixed (breaking changes outside scope); tracked in `docs/deployment-readiness-report.md`.
 
 ## AI Contribution

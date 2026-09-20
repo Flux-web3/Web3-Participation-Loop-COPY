@@ -11,7 +11,7 @@
 | Minimum sample | 40 eligible per arm (cohort 1) + 40 eligible per arm (confirmatory cohort) |
 | Status | Pre-registration draft — no results yet |
 
-> **Synthetic Data Notice.** Every number in this document is a synthetic simulation generated for a fictional hiring assessment. The baseline funnel below is derived from the labelled synthetic prototype dataset (119 events; 20 acquisitions). No real money, no live campaign, no real user data, and no production Sybil detection are involved, and nothing in this brief is represented as real-world performance. The working prototype for reference: https://web3-participation-loop-main.vercel.app
+> **Synthetic Data Notice.** Every number in this document is a synthetic simulation generated for a fictional hiring assessment. The baseline funnel below is derived from the labelled synthetic prototype dataset (119 events; 20 acquisitions). No real money, no live campaign, no real user data, and no production Sybil detection are involved, and nothing in this brief is represented as real-world performance. The working prototype for reference: https://web3-participation-loop-copy.vercel.app
 
 ## 1. Background and Problem
 
@@ -132,7 +132,7 @@ Guardrails reference the directive stop rules: **Scale** requires improvement wi
 - **Statistical reporting.** Point estimates, differences, 95% confidence intervals, and p-values for the primary and secondary proportion metrics; guardrail tests at one-sided 10% significance to favour safety sensitivity.
 - **Peeking control.** No efficacy tests before the minimum sample. Interim looks restricted to operational and abuse safety.
 - **Stop-rule handling.** Thresholds are pre-registered and unchanged by interim reads; adoption proceeds as a staged ramp (10% → 50% → 100% of waitlist traffic) only after the confirmatory cohort.
-- **Reproducibility.** Simulation is seeded and replayable; every metric is derived from the labelled append-only synthetic event log; results will be recorded against labelled records, not asserted from memory. Prototype for reference: https://web3-participation-loop-main.vercel.app
+- **Reproducibility.** Simulation is seeded and replayable; every metric is derived from the labelled append-only synthetic event log; results will be recorded against labelled records, not asserted from memory. Prototype for reference: https://web3-participation-loop-copy.vercel.app
 
 ## 9. Risks and Mitigations
 

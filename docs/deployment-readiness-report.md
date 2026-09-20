@@ -13,8 +13,8 @@ deployment exists per repository.
 
 | Repository | Vercel project | Live alias | Status |
 | --- | --- | --- | --- |
-| `Flux-web3/Web3-Participation-Loop-COPY` (primary) | `web3-participation-loop-main` | https://web3-participation-loop-main.vercel.app | LIVE — READY, HTTP 200 |
-| `Flux-web3/web3-participation-loop` (mirror) | `web3-participation-loop` | https://web3-participation-loop.vercel.app | LIVE — READY, HTTP 200 |
+| `Flux-web3/Web3-Participation-Loop-COPY` (primary) | `web3-participation-loop-copy` | https://web3-participation-loop-copy.vercel.app | LIVE — READY, HTTP 200 |
+| `Flux-web3/web3-participation-loop` (mirror) | `web3-participation-loop-main` | https://web3-participation-loop-main.vercel.app | LIVE — READY, HTTP 200 |
 
 ## 2. Verification Performed
 
@@ -36,16 +36,17 @@ clean on the shipped commit.
 ## 3. Configuration
 
 - **Build:** Vite 5. Full-Stack TS prototype in `prototype/`; package root is `prototype/`.
-- **Vercel settings (both projects):** framework `vite`, root directory `prototype`, output directory `dist` (set as project settings — `rootDirectory` is not a valid `vercel.json` key).
+- **Vercel settings (both projects, `web3-participation-loop-copy` and `web3-participation-loop-main`):** framework `vite`, root directory `prototype`, output directory `dist` (set as project settings — `rootDirectory` is not a valid `vercel.json` key).
 - **`vercel.json` (repo root):** `{ "framework": "vite", "buildCommand": "npm run build", "outputDirectory": "dist" }` — honoured when no project `rootDirectory` override exists.
 - **Content hashing:** pure-TS SHA-256 (`prototype/lib/hash.ts`) — byte-identical to `node:crypto` (parity-tested), no Node built-ins in the browser bundle.
 
 ## 4. Cleanup Applied Before This Report
 
-- Deleted the duplicate, misconfigured Vercel project `web3-participation-loop-copy` (no framework/root settings → failing deployments and 404 URLs on the primary repo's push history).
-- Recreated the deleted `web3-participation-loop` project (mirror repo), configured it identically to the primary project, and deployed the current head successfully.
-- Updated the two stale GitHub deployment statuses (one per repo) from `failure` (referencing dead URLs) to `success` against the live aliases.
-- Removed the locally downloaded `prototype/.env.local` (runtime Vercel OIDC token; gitignored, not committed).
+- Rerouted deployments so each repository ships under its own correctly-named project: the COPY repo now deploys under `web3-participation-loop-copy` → https://web3-participation-loop-copy.vercel.app, and the mirror repo under `web3-participation-loop-main` → https://web3-participation-loop-main.vercel.app (its legacy alias https://web3-participation-loop.vercel.app still serves the same deployment).
+- Deleted the misconfigured duplicate `web3-participation-loop-copy` project and the legacy COPY-linked `web3-participation-loop-main` project (both produced failing builds/404 or duplicate auto-deploys), and renamed the mirror's project from `web3-participation-loop` to `web3-participation-loop-main`.
+- Recreated and configured the `web3-participation-loop-copy` project, connected it to the COPY repo, and deployed the current head.
+- Updated the stale GitHub deployment statuses (one per repo) to `success` against the live aliases.
+- Removed locally downloaded `prototype/.env.local` / temp-clone `.env.local` files (runtime Vercel OIDC tokens; gitignored, not committed; temp clones deleted).
 - Tidied `.gitignore` (removed duplicate trailing entries left by the Vercel CLI).
 
 ## 5. Known Items / Accepted Risks (not blockers for this assessment)
@@ -68,8 +69,9 @@ npm run preview   # serves dist locally
 
 Live links:
 
-- Prototype: https://web3-participation-loop-main.vercel.app
-- Dashboard: https://web3-participation-loop-main.vercel.app/#dashboard
+- Prototype (primary / COPY): https://web3-participation-loop-copy.vercel.app
+- Dashboard (primary / COPY): https://web3-participation-loop-copy.vercel.app/#dashboard
+- Prototype (mirror / main repo): https://web3-participation-loop-main.vercel.app
 - Dataset: https://github.com/Flux-web3/Web3-Participation-Loop-COPY/blob/main/data/synthetic-participants.csv
 - Source (primary): https://github.com/Flux-web3/Web3-Participation-Loop-COPY
 - Source (mirror): https://github.com/Flux-web3/web3-participation-loop
