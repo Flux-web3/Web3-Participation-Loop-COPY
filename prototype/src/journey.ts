@@ -50,6 +50,30 @@ const HAPPY_PATH_CONTENT: ReviewContent = {
     'The disclosure describes a multisig but never states who holds keys, how they rotate, or what happens when a signer is unavailable, so custody risk is currently unassessable.',
 };
 
+// The remaining scripted scenarios use unique substantive reviews so the
+// content-hash duplicate gate never makes two demo runs collide inside one
+// shared store (scenario C is the exception by design: it reposts U007).
+const WALLET_DECLINED_CONTENT: ReviewContent = {
+  section: 'treasury',
+  question: 'What signer quorum must approve a treasury operation, and where is that documented?',
+  whyItMatters:
+    'The disclosure names signers but never states the quorum or approval flow, so operational control of the treasury is ambiguous.',
+};
+
+const ACK_FAIL_CONTENT: ReviewContent = {
+  section: 'treasury',
+  question: 'Which wallet addresses are authorized to acknowledge, and who manages those signer keys?',
+  whyItMatters:
+    'Without an explicit set of expected acknowledgement addresses, a simulated acknowledgement cannot be verified by any observer.',
+};
+
+const ABUSE_BOT_CONTENT: ReviewContent = {
+  section: 'treasury',
+  question: 'How would a genuine participant independently verify a claim made in the disclosure?',
+  whyItMatters:
+    'The prototype integrity layer is declarative; a real deployment needs an external verifier to make the same signals auditable.',
+};
+
 function seedReviewContent(participantId: string): ReviewContent {
   const record = SYNTHETIC_SEED.find((r) => r.id === participantId);
   const step = record?.journey.find((s): s is Extract<SeedStep, { step: 'submit' }> => s.step === 'submit');
@@ -91,7 +115,7 @@ export const DEMO_SCENARIOS: readonly Scenario[] = [
       journey: [
         { step: 'waitlist' },
         { step: 'view' },
-        { step: 'submit', content: HAPPY_PATH_CONTENT },
+        { step: 'submit', content: WALLET_DECLINED_CONTENT },
         { step: 'wallet.decline' },
       ],
     }),
@@ -122,7 +146,7 @@ export const DEMO_SCENARIOS: readonly Scenario[] = [
       journey: [
         { step: 'waitlist' },
         { step: 'view' },
-        { step: 'submit', content: HAPPY_PATH_CONTENT },
+        { step: 'submit', content: ACK_FAIL_CONTENT },
         { step: 'wallet.connect' },
         { step: 'wallet.ack', outcome: 'failure' },
       ],
@@ -151,7 +175,7 @@ export const DEMO_SCENARIOS: readonly Scenario[] = [
       channel: 'other',
       eligibility: 'eligible',
       abuseProfile: 'synthetic_bot',
-      journey: [{ step: 'waitlist' }, { step: 'view' }, { step: 'submit', content: HAPPY_PATH_CONTENT }],
+      journey: [{ step: 'waitlist' }, { step: 'view' }, { step: 'submit', content: ABUSE_BOT_CONTENT }],
     }),
   },
 ];
