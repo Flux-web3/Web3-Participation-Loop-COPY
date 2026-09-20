@@ -23,6 +23,7 @@ import {
 } from '@/commands';
 import { CommandError } from '@/commands/errors';
 import { CURRENT_DISCLOSURE_VERSION, DISCLOSURE, DISCLOSURE_SECTION_IDS } from '@/data/disclosure';
+import type { EventType } from '@/domain/events/schema';
 import { playJourney, SYNTHETIC_SEED } from '@/seed';
 import type { SeedStep, SyntheticSeedRecord } from '@/seed';
 import { escapeHtml } from './format';
@@ -168,19 +169,30 @@ interface LiveState {
   ackAttempted: boolean;
 }
 
+export function dispositionOf(type: EventType | undefined): LiveState['disposition'] {
+  switch (type) {
+    case 'ReviewQualified':
+      return 'qualified';
+    case 'ReviewRejected':
+      return 'rejected';
+    case 'ReviewFlaggedDuplicate':
+      return 'duplicate';
+    case 'ReviewFlaggedAbuse':
+      return 'abuse_flagged';
+    default:
+      return undefined;
+  }
+}
+
 function liveState(ctx: CommandContext, id: ParticipantId): LiveState {
   const events = ctx.store.byParticipant(id);
-  const dispositionEvent = events.find((e) =>
-    e.type === 'ReviewQualified' || e.type === 'ReviewRejected' || e.type === 'ReviewFlaggedDuplicate' || e.type === 'ReviewFlaggedAbuse'
-      ? true
-      : false,
-  );
+  const disposition = dispositionOf(events.find((e) => dispositionOf(e.type) !== undefined)?.type);
   return {
     participant: projectParticipant(events),
     walletStatus: deriveWalletStatus(events),
     viewed: events.some((e) => e.type === 'DisclosureViewed'),
     submitted: events.some((e) => e.type === 'ReviewSubmitted'),
-    disposition: dispositionEvent ? (dispositionEvent.type as LiveState['disposition']) : undefined,
+    disposition,
     rejectionReason: events.find((e) => e.type === 'ReviewRejected')?.reason,
     followUps: events.filter((e) => e.type === 'BusinessFollowUpCreated').length,
     prompted: events.some((e) => e.type === 'WalletPrompted'),
