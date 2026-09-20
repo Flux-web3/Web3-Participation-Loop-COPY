@@ -33,5 +33,11 @@ coverage/
 .DS_Store
 Thumbs.db
 
+# Vercel CLI link metadata
+.vercel/
+
 # Original assessment archive (kept out of version control)
 web3-participation-loop-main.zip
+
+.vercel
+.env*
