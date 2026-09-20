@@ -18,5 +18,5 @@
       "@/*": ["./*"]
     }
   },
-  "include": ["domain", "commands", "lib", "data", "test"]
+  "include": ["domain", "commands", "lib", "data", "analytics", "seed", "test"]
 }
