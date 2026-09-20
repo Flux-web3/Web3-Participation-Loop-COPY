@@ -10,6 +10,7 @@ import type {
 } from '@/domain';
 import type { EventStore } from '@/data';
 import type { ParticipantRow } from '@/analytics';
+import type { CommandContext } from '@/commands/context';
 import { buildParticipantRows } from '@/analytics';
 import { createContext } from '@/commands/context';
 import {
@@ -398,6 +399,60 @@ export function seedClock(): () => string {
 }
 
 /**
+ * Play one record's journey through the command layer. Shared by
+ * {@link buildSyntheticStore} and the browser UI so that seeded and live
+ * participants take identical, guard-enforced journeys.
+ */
+export function playJourney(ctx: CommandContext, record: SyntheticSeedRecord): void {
+  acceptAcquisition(ctx, {
+    participantId: record.id,
+    channel: record.channel,
+    eligibility: record.eligibility,
+    abuseProfile: record.abuseProfile,
+  });
+  for (const step of record.journey) {
+    switch (step.step) {
+      case 'waitlist':
+        registerWaitlist(ctx, { participantId: record.id });
+        break;
+      case 'view':
+        viewDisclosure(ctx, {
+          participantId: record.id,
+          sectionsSeen: step.sectionsSeen ?? SECTIONS,
+          disclosureVersion: step.disclosureVersion,
+        });
+        break;
+      case 'submit':
+        submitReview(ctx, {
+          participantId: record.id,
+          content: step.content,
+          disclosureVersion: step.disclosureVersion,
+        });
+        break;
+      case 'followup':
+        createFollowUp(ctx, { participantId: record.id, followUpType: step.followUpType, actor: step.actor ?? 'operations' });
+        break;
+      case 'wallet.decline':
+        promptWallet(ctx, { participantId: record.id });
+        declineWallet(ctx, { participantId: record.id });
+        break;
+      case 'wallet.connect':
+        promptWallet(ctx, { participantId: record.id });
+        connectWallet(ctx, { participantId: record.id });
+        break;
+      case 'wallet.ack':
+        attemptAcknowledgement(ctx, {
+          participantId: record.id,
+          outcome: step.outcome,
+          ...(step.simulatedRef ? { simulatedRef: step.simulatedRef } : {}),
+          ...(step.errorCode ? { errorCode: step.errorCode } : {}),
+        });
+        break;
+    }
+  }
+}
+
+/**
  * Play the whole dataset through the command layer into a fresh store.
  * Deterministic: same spec, same store, same sequence numbers, same ids.
  */
@@ -406,52 +461,7 @@ export function buildSyntheticStore(): EventStore {
   const ctx = createContext(store, DISCLOSURE, seedClock());
 
   for (const record of SYNTHETIC_SEED) {
-    acceptAcquisition(ctx, {
-      participantId: record.id,
-      channel: record.channel,
-      eligibility: record.eligibility,
-      abuseProfile: record.abuseProfile,
-    });
-    for (const step of record.journey) {
-      switch (step.step) {
-        case 'waitlist':
-          registerWaitlist(ctx, { participantId: record.id });
-          break;
-        case 'view':
-          viewDisclosure(ctx, {
-            participantId: record.id,
-            sectionsSeen: step.sectionsSeen ?? SECTIONS,
-            disclosureVersion: step.disclosureVersion,
-          });
-          break;
-        case 'submit':
-          submitReview(ctx, {
-            participantId: record.id,
-            content: step.content,
-            disclosureVersion: step.disclosureVersion,
-          });
-          break;
-        case 'followup':
-          createFollowUp(ctx, { participantId: record.id, followUpType: step.followUpType, actor: step.actor ?? 'operations' });
-          break;
-        case 'wallet.decline':
-          promptWallet(ctx, { participantId: record.id });
-          declineWallet(ctx, { participantId: record.id });
-          break;
-        case 'wallet.connect':
-          promptWallet(ctx, { participantId: record.id });
-          connectWallet(ctx, { participantId: record.id });
-          break;
-        case 'wallet.ack':
-          attemptAcknowledgement(ctx, {
-            participantId: record.id,
-            outcome: step.outcome,
-            ...(step.simulatedRef ? { simulatedRef: step.simulatedRef } : {}),
-            ...(step.errorCode ? { errorCode: step.errorCode } : {}),
-          });
-          break;
-      }
-    }
+    playJourney(ctx, record);
   }
   return store;
 }

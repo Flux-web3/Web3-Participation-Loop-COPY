@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MUST Company — Participation Loop Prototype</title>
+    <meta
+      name="description"
+      content="Fictional, synthetic-only Web3 participation-loop assessment prototype. No real money, rewards, tokens, wallets, or mainnet transactions."
+    />
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body>
+    <header class="app-header">
+      <div class="brand">
+        <h1>MUST Company <span class="sub">Participation Loop Prototype</span></h1>
+        <p class="disclaimer">
+          Fictional, synthetic-only assessment prototype. No real tokens, rewards, wallets, or mainnet
+          transactions. On-chain acknowledgement is simulated and confers nothing.
+        </p>
+      </div>
+      <nav class="app-nav" aria-label="Sections">
+        <a href="#journey" data-view="journey">Participant Journey</a>
+        <a href="#dashboard" data-view="dashboard">Operations Dashboard</a>
+      </nav>
+    </header>
+
+    <main id="app">
+      <section id="journey-view" class="view" hidden></section>
+      <section id="dashboard-view" class="view" hidden></section>
+    </main>
+
+    <footer class="app-footer">
+      <span>All records are synthetic and labelled as such. Boilerplate-filled reviews are never substantive.</span>
+    </footer>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
