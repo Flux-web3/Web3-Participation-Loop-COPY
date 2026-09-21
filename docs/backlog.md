@@ -3,7 +3,7 @@
 ## Context / Scope
 
 This backlog defines the next iteration for the Web3 participation loop prototype
-(working prototype: https://web3-participation-loop-copy.vercel.app). The primary
+(working prototype: https://web3-participation-loop.vercel.app). The primary
 bottleneck remains **disclosure/review → qualified reviewer**, with a planning target of
 moving **qualified participation toward 35–40%** while keeping quality and abuse guardrails
 acceptable (a simulation target, not a forecast).
@@ -79,7 +79,7 @@ append-only event log (MVP done) and the seeded synthetic dataset:
   duplicate/abuse counters, and classifies each variant as scale / pivot / kill.
 - The pilot framing variant yields a measured, non-zero delta on disclosure engagement or
   qualified participation versus baseline, with the decision recommendation recorded.
-- New tests added (≥ 8), existing 98 unit tests stay green, strict typecheck passes.
+- New tests added (≥ 8), existing 101 unit tests stay green, strict typecheck passes.
 
 **Affected metrics.** Disclosure Engagement, Review Submission, Review Qualification, Qualified
 Participation; integrity counters as guardrail context.
@@ -117,7 +117,7 @@ procedure and quality-side reporting.
   above plus the rejection-reason mix per profile.
 - The recommended profile holds qualified participation in the 35–40% band while keeping
   `non_substantive` rejections non-zero (gate still rejects weak content).
-- No regression in the existing 98 unit tests; strict typecheck passes; calibration is
+- No regression in the existing 101 unit tests; strict typecheck passes; calibration is
   deterministic (same seed, same output).
 
 **Affected metrics.** Review Qualification, Qualified Participation; rejection-reason mix and
@@ -192,7 +192,7 @@ This work stays explicitly non-production and simulated (intent.md §9).
   flagged by heuristics.
 - Duplicate and abuse records remain separately classified; qualified conversion excludes
   both — no funnel-semantics change.
-- ≥ 8 new tests; existing 98 unit tests stay green; strict typecheck passes.
+- ≥ 8 new tests; existing 101 unit tests stay green; strict typecheck passes.
 
 **Affected metrics.** Review Qualification, Qualified Participation; duplicate/abuse integrity
 counters (guardrail).
@@ -228,7 +228,7 @@ the lane.
   or terminal failure is emitted at the bound.
 - Dashboard shows attempt / retry / success breakdown; acknowledgement success remains
   successes / attempts; a unit test proves retries cannot affect qualification or follow-up.
-- ≥ 6 new tests; existing 98 unit tests stay green; strict typecheck passes.
+- ≥ 6 new tests; existing 101 unit tests stay green; strict typecheck passes.
 
 **Affected metrics.** Acknowledgement Success (reliability of the optional second branch).
 

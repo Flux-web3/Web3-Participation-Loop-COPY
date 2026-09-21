@@ -124,5 +124,5 @@ Priorities for the next cycle, tied to the five-item backlog and the named exper
 
 All results in this memo — the funnel counts, rates, rejection reasons and baseline — are **synthetic simulation data from a fictional hiring assessment for MUST Company**. They exercise and sanity-check the measurement model; they are not real-world evidence of user behaviour, market performance or product-market fit, and they must not be presented as such.
 
-**Prototype:** https://web3-participation-loop-copy.vercel.app
-**Source:** https://github.com/Flux-web3/Web3-Participation-Loop-COPY
+**Prototype:** https://web3-participation-loop.vercel.app
+**Source:** https://github.com/Flux-web3/web3-participation-loop

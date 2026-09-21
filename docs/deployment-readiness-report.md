@@ -1,59 +1,53 @@
 # Deployment Readiness Report — Web3 Participation Loop
 
-**Prepared:** 2026-09-20
+**Prepared:** 2026-09-21
 **Scope:** fictional hiring assessment (MUST Company). All data is synthetic and labelled as such.
-**Status:** READY — both repositories deployed, both production deployments live and verified.
+**Status:** READY — repository deployed, production deployment live and verified.
 
 ## 1. Executive Summary
 
 The Web3 participation loop prototype is complete, verified, and live. The codebase passes its full
-verification stack (typecheck, 98 tests, production build), the dataset is consistent with the
-documented baseline, no credentials or secrets are committed, and exactly one working Vercel
-deployment exists per repository.
+verification stack (typecheck, 101 tests, production build), the dataset is consistent with the
+documented baseline, no credentials or secrets are committed, and one working Vercel deployment is
+live and serving the current build.
 
 | Repository | Vercel project | Live alias | Status |
 | --- | --- | --- | --- |
-| `Flux-web3/Web3-Participation-Loop-COPY` (primary) | `web3-participation-loop-copy` | https://web3-participation-loop-copy.vercel.app | LIVE — READY, HTTP 200 |
-| `Flux-web3/web3-participation-loop` (mirror) | `web3-participation-loop-main` | https://web3-participation-loop-main.vercel.app | LIVE — READY, HTTP 200 |
+| `Flux-web3/web3-participation-loop` | `web3-participation-loop` | https://web3-participation-loop.vercel.app | LIVE — READY, HTTP 200 |
 
 ## 2. Verification Performed
 
-All commands were executed from `prototype/` on `main` at commit `f55980c` (final pass) and re-run
-clean on the shipped commit.
+All commands were executed from `prototype/` on `main` at the shipped commit.
 
 | Check | Command | Result |
 | --- | --- | --- |
 | Typecheck | `npm run typecheck` (`tsc --noEmit`) | Clean — no errors |
-| Unit/integration tests | `npm test` (Vitest) | 9 files, 98/98 passing |
+| Unit/integration tests | `npm test` (Vitest) | 11 files, 101/101 passing |
 | Production build | `npm run build` (`vite build`) | Success — 36 modules |
-| Build artifacts | — | `index.html` 1.53 kB, CSS 5.07 kB, JS 49.32 kB (gzip 14.28 kB) |
-| Production smoke (primary) | HTTP GET alias | 200 — `MUST Company - Participation Loop Prototype`, bundle served |
-| Production smoke (mirror) | HTTP GET alias | 200 — same title/bundle |
+| Build artifacts | — | `index.html` 1.57 kB, `assets/index-CGEhekz0.css` 5.07 kB, `assets/index-CYBiedOB.js` 50.24 kB (gzip 14.58 kB) |
+| Production smoke | HTTP GET `https://web3-participation-loop.vercel.app` | 200 — `MUST Company - Participation Loop Prototype`, bundle `assets/index-CYBiedOB.js` served |
+| Deployed == source | Compare live bundle vs local build | Match — live serves `index-CYBiedOB.js`, identical to the current build |
 | Secrets scan | `git grep` for credential patterns over HEAD | No matches; no `process.env`/`import.meta.env` in tracked source |
-| Dataset consistency | Diff `data/synthetic-participants.csv` vs docs baseline | Consistent (20 acquisitions, 119 events, 7 rejection reasons) |
-| Dependency audit | `npm audit` | 5 findings — all in dev/build-time dependencies, no runtime exposure, no forced upgrades applied (see §5) |
+| Dataset consistency | Inspect `data/synthetic-participants.csv` | 20 labelled synthetic participant records; runtime event log/funnel validated by the `seed` test suite |
+| Dependency audit | `npm audit` | Findings confined to dev/build-time dependencies, no runtime exposure (see §5) |
 
 ## 3. Configuration
 
-- **Build:** Vite 5. Full-Stack TS prototype in `prototype/`; package root is `prototype/`.
-- **Vercel settings (both projects, `web3-participation-loop-copy` and `web3-participation-loop-main`):** framework `vite`, root directory `prototype`, output directory `dist` (set as project settings — `rootDirectory` is not a valid `vercel.json` key).
-- **`vercel.json` (repo root):** `{ "framework": "vite", "buildCommand": "npm run build", "outputDirectory": "dist" }` — honoured when no project `rootDirectory` override exists.
+- **Build:** Vite 5. TypeScript prototype in `prototype/`; package root is `prototype/`.
+- **Vercel project (`web3-participation-loop`):** framework `vite`, root directory `prototype`, output directory `dist` (set as project settings — `rootDirectory` is not a valid `vercel.json` key).
+- **`vercel.json` (repo root):** `{ "framework": "vite", "buildCommand": "npm run build", "outputDirectory": "dist" }` — honoured together with the project root-directory setting.
 - **Content hashing:** pure-TS SHA-256 (`prototype/lib/hash.ts`) — byte-identical to `node:crypto` (parity-tested), no Node built-ins in the browser bundle.
 
-## 4. Cleanup Applied Before This Report
+## 4. Deployment
 
-- Rerouted deployments so each repository ships under its own correctly-named project: the COPY repo now deploys under `web3-participation-loop-copy` → https://web3-participation-loop-copy.vercel.app, and the mirror repo under `web3-participation-loop-main` → https://web3-participation-loop-main.vercel.app (its legacy alias https://web3-participation-loop.vercel.app still serves the same deployment).
-- Deleted the misconfigured duplicate `web3-participation-loop-copy` project and the legacy COPY-linked `web3-participation-loop-main` project (both produced failing builds/404 or duplicate auto-deploys), and renamed the mirror's project from `web3-participation-loop` to `web3-participation-loop-main`.
-- Recreated and configured the `web3-participation-loop-copy` project, connected it to the COPY repo, and deployed the current head.
-- Updated the stale GitHub deployment statuses (one per repo) to `success` against the live aliases.
-- Removed locally downloaded `prototype/.env.local` / temp-clone `.env.local` files (runtime Vercel OIDC tokens; gitignored, not committed; temp clones deleted).
-- Tidied `.gitignore` (removed duplicate trailing entries left by the Vercel CLI).
+- The repository deploys to a single Vercel project (`web3-participation-loop`) with root directory `prototype`, framework `vite`, output `dist`.
+- The production alias `https://web3-participation-loop.vercel.app` returns HTTP 200 and serves the current build (`assets/index-CYBiedOB.js`), confirming the deployed site matches the shipped commit.
+- No `.env` / `.env.local` or credential files are committed; any locally-generated Vercel OIDC token file is gitignored.
 
 ## 5. Known Items / Accepted Risks (not blockers for this assessment)
 
-- **`npm audit` findings:** 5 vulnerabilities in dev/build-time toolchain (esbuild/vite transitive chain and similar). No production-runtime code path reaches them; no secrets or user input are involved. Forced upgrades would be breaking and are outside the assessment scope. Re-evaluate before any future production hardening.
+- **`npm audit` findings:** vulnerabilities confined to the dev/build-time toolchain (esbuild/vite transitive chain). No production-runtime code path reaches them; no secrets or user input are involved. Forced upgrades would be breaking and are outside the assessment scope. Re-evaluate before any future production hardening.
 - **Synthetic-only evidence:** all funnel numbers are seeded simulation data by design (labelled). Nothing represents real user behaviour or real-world performance.
-- **Historical GitHub statuses:** GitHub deployment statuses are immutable; older successful records for now-deleted deployments remain in the Environments tab history but the latest status on both repos points at live URLs.
 - **No production-grade Sybil detection:** abuse classification is a labelled synthetic heuristic, explicitly not a defence (see directive §11 and participation rules).
 
 ## 6. Reviewer Reproduction
@@ -69,9 +63,7 @@ npm run preview   # serves dist locally
 
 Live links:
 
-- Prototype (primary / COPY): https://web3-participation-loop-copy.vercel.app
-- Dashboard (primary / COPY): https://web3-participation-loop-copy.vercel.app/#dashboard
-- Prototype (mirror / main repo): https://web3-participation-loop-main.vercel.app
-- Dataset: https://github.com/Flux-web3/Web3-Participation-Loop-COPY/blob/main/data/synthetic-participants.csv
-- Source (primary): https://github.com/Flux-web3/Web3-Participation-Loop-COPY
-- Source (mirror): https://github.com/Flux-web3/web3-participation-loop
+- Prototype: https://web3-participation-loop.vercel.app
+- Dashboard: https://web3-participation-loop.vercel.app/#dashboard
+- Dataset: https://github.com/Flux-web3/web3-participation-loop/blob/main/data/synthetic-participants.csv
+- Source: https://github.com/Flux-web3/web3-participation-loop

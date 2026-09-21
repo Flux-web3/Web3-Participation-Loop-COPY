@@ -258,44 +258,43 @@ Unchanged: the primary bottleneck, the qualified-review definition, incentive li
 
 ## Artifact Links
 
-> Artifacts are versioned in this repository (no Notion workspace is used). Links point to the canonical `main` branch of the primary repository, mirrored to the secondary repository.
+> Artifacts are versioned in this repository. Links point to the canonical `main` branch of `Flux-web3/web3-participation-loop`.
 
 ### Journey & Participation Rules
 
-https://github.com/Flux-web3/Web3-Participation-Loop-COPY/blob/main/docs/participation-rules.md
+https://github.com/Flux-web3/web3-participation-loop/blob/main/docs/participation-rules.md
 
 ### Working Prototype
 
-https://web3-participation-loop-copy.vercel.app
+https://web3-participation-loop.vercel.app
 
 ### PRD
 
-https://github.com/Flux-web3/Web3-Participation-Loop-COPY/blob/main/docs/prd.md
+https://github.com/Flux-web3/web3-participation-loop/blob/main/docs/prd.md
 
 ### Five-item Backlog
 
-https://github.com/Flux-web3/Web3-Participation-Loop-COPY/blob/main/docs/backlog.md
+https://github.com/Flux-web3/web3-participation-loop/blob/main/docs/backlog.md
 
 ### Synthetic Dataset
 
-https://github.com/Flux-web3/Web3-Participation-Loop-COPY/blob/main/data/synthetic-participants.csv
+https://github.com/Flux-web3/web3-participation-loop/blob/main/data/synthetic-participants.csv
 
 ### Dashboard
 
-https://web3-participation-loop-copy.vercel.app/#dashboard
+https://web3-participation-loop.vercel.app/#dashboard
 
 ### Experiment Brief
 
-https://github.com/Flux-web3/Web3-Participation-Loop-COPY/blob/main/docs/experiment-brief.md
+https://github.com/Flux-web3/web3-participation-loop/blob/main/docs/experiment-brief.md
 
 ### Weekly Decision Memo
 
-https://github.com/Flux-web3/Web3-Participation-Loop-COPY/blob/main/docs/decision-memo.md
+https://github.com/Flux-web3/web3-participation-loop/blob/main/docs/decision-memo.md
 
 ### Source Repository
 
-Primary: https://github.com/Flux-web3/Web3-Participation-Loop-COPY
-Mirror (kept in sync): https://github.com/Flux-web3/web3-participation-loop
+https://github.com/Flux-web3/web3-participation-loop
 
 ## Reproduction / Viewing Steps
 
@@ -318,15 +317,12 @@ Do not claim tests or checks that were not performed.
 All checks below were actually run in the final QA pass (2026-09-20).
 
 - **Typecheck:** `tsc --noEmit` — clean, no errors (`prototype/`).
-- **Tests:** Vitest — 9 test files, **98/98 tests passing** (`prototype/`).
-- **Build:** `vite build` — success, 36 modules; `dist/index.html` 1.53 kB, `assets/index-CGEhekz0.css` 5.07 kB, `assets/index-DrTqkm0w.js` 49.32 kB (gzip 14.28 kB).
-- **Production smoke:** `https://web3-participation-loop-copy.vercel.app` (primary / COPY repo deployment) → HTTP 200, `<title>MUST Company - Participation Loop Prototype</title>`, JS bundle served. `https://web3-participation-loop-main.vercel.app` (mirror / main repo deployment) → HTTP 200, same title.
-- **Dataset integrity:** `data/synthetic-participants.csv` verified consistent with the docs' baseline (20 acquisitions; 119 events; 7 rejection reasons; one record set).
+- **Tests:** Vitest — 11 test files, **101/101 tests passing** (`prototype/`).
+- **Build:** `vite build` — success, 36 modules; `dist/index.html` 1.57 kB, `assets/index-CGEhekz0.css` 5.07 kB, `assets/index-CYBiedOB.js` 50.24 kB (gzip 14.58 kB).
+- **Production smoke:** `https://web3-participation-loop.vercel.app` → HTTP 200, `<title>MUST Company - Participation Loop Prototype</title>`, JS bundle `assets/index-CYBiedOB.js` served.
+- **Dataset integrity:** `data/synthetic-participants.csv` — 20 labelled synthetic participant records; the seed expands these into the runtime event log and funnel, validated by the `seed` test suite.
 - **Secrets scan:** `git grep` over HEAD for `eyJ…`, `sk-…`, `AKIA…`, `BEGIN … PRIVATE KEY`, `VERCEL_`, `SERVICE_ROLE` → no matches. No `process.env` / `import.meta.env` usage in tracked source. No credentials or API keys are committed. The runtime-locally-generated `prototype/.env.local` (Vercel OIDC token) is gitignored and was removed from disk; no such file is committed.
-- **Deployment layout:** one production deployment per repository, both READY, each under its own correctly-named project:
-  - Primary repo (`Flux-web3/Web3-Participation-Loop-COPY`) → Vercel project `web3-participation-loop-copy` (`rootDirectory=prototype`, framework vite, output `dist`) → alias `web3-participation-loop-copy.vercel.app`.
-  - Mirror repo (`Flux-web3/web3-participation-loop`) → Vercel project `web3-participation-loop-main` (same settings) → alias `web3-participation-loop-main.vercel.app` (legacy alias `web3-participation-loop.vercel.app` still serves the same deployment).
-  - Reroute cleanup: the misconfigured duplicate `web3-participation-loop-copy` project and the legacy COPY-linked `web3-participation-loop-main` project were deleted; the mirror's project was renamed to its own name; GitHub deployment statuses on both repos updated to `success` against the live aliases.
+- **Deployment layout:** the repository (`Flux-web3/web3-participation-loop`) deploys to a single Vercel project — framework `vite`, root directory `prototype`, output `dist` — at `https://web3-participation-loop.vercel.app` (HTTP 200, READY).
 - **npm audit:** `npm audit` reports 5 vulnerabilities in dev dependencies (high/medium, build-time only, no runtime exposure). Not force-fixed (breaking changes outside scope); tracked in `docs/deployment-readiness-report.md`.
 
 ## AI Contribution
@@ -348,7 +344,7 @@ Record actual corrections discovered during implementation and QA.
 - **Browser build break:** an initial implementation imported `node:crypto` (for content hashing), which broke the Vite browser bundle. Corrected by replacing it with a pure-TS SHA-256 implementation (`prototype/lib/hash.ts`); verified byte-identical hex output vs `node:crypto` (parity test + `abc` FIPS-180-4 vector).
 - **TypeScript defects caught by typecheck:** `src/dashboard.ts` used unstable key indexing into the funnel metrics map (fixed with `keyof FunnelMetrics` typing on `RATE_CARDS`); `src/journey.ts` called `createFollowUp` without the required `actor` parameter (fixed by passing `operations`).
 - **Vercel config invalid property:** `vercel.json` initially contained `rootDirectory`, which the Vercel CLI rejects ("should NOT have additional property"). `rootDirectory` is a project setting, not a `vercel.json` key; the file was corrected and the setting applied via the Vercel project API.
-- **Duplicate/broken Vercel projects:** the COPY repo was wired to two Vercel projects; one (`web3-participation-loop-copy`) had no build config and produced failing deployments and 404 URLs. It was deleted. The mirror repo's project (`web3-participation-loop`) had been deleted, leaving failing statuses; it was recreated, configured (`rootDirectory=prototype`), redeployed successfully, and GitHub statuses updated to `success` against the live aliases.
+- **Vercel project configuration:** the initial deployment failed because the Vercel project lacked build configuration (no root directory / framework preset), producing failing builds and 404 URLs. Fixed by configuring the project (`rootDirectory=prototype`, framework `vite`, output `dist`), redeploying successfully, and confirming HTTP 200 at `https://web3-participation-loop.vercel.app`.
 - **Dataset line-ending artifact:** `data/synthetic-participants.csv` showed a phantom modified status caused by LF/CRLF normalization; content verified identical to HEAD and restored (no data change).
 
 ## Limitations

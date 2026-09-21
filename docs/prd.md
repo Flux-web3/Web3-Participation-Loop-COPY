@@ -239,7 +239,7 @@ Prototype demo scenarios (route `#journey`):
 - **Type safety:** the prototype type-checks cleanly (`npm run typecheck`) and tests pass (`npm run test`).
 - **No credentials:** the repository and deployment contain no API keys, tokens, or secrets.
 - **Labelling:** all synthetic data is visibly labelled as synthetic; no real-world claims are made.
-- **Links:** all prototype links work; the deployed prototype is available at https://web3-participation-loop-copy.vercel.app (journey at `#journey`, dashboard at `#dashboard`).
+- **Links:** all prototype links work; the deployed prototype is available at https://web3-participation-loop.vercel.app (journey at `#journey`, dashboard at `#dashboard`).
 
 ## 14. Acceptance Criteria
 
