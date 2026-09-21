@@ -45,7 +45,7 @@ Key changes this week:
    Effect: follow-up conversion is computed as Qualified Follow-ups / Qualified Reviews, and acknowledgement success is measured on its own (Successful Acknowledgements / Acknowledgement Attempts), independent of follow-up.
 
 6. **Exclude duplicate submissions via content hashing (first-writer-wins).**
-   Rationale: duplicates inflate submission counts without adding business value; credits should go to the first writer.
+   Rationale: duplicates inflate submission counts without adding business value; credit goes to the first *valid* (qualified) writer, so a rejected first copy cannot block a later genuine review.
    Effect: `duplicate_detected` is logged, the duplicate never qualifies, and duplicates can never increase qualified conversion.
 
 7. **Classify abuse-flagged synthetic records separately and keep them visible to operations.**

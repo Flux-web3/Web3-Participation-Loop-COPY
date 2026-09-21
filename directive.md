@@ -322,11 +322,11 @@ All checks below were actually run in the final QA pass (2026-09-20), and re-run
 on 2026-09-21 after the disclosure-version-mismatch fix (commit `ba49f35`, see AI Corrections).
 
 - **Typecheck:** `tsc --noEmit` — clean, no errors (`prototype/`).
-- **Tests:** Vitest — 11 test files, **103/103 tests passing** (`prototype/`) — was 101/101; two
-  regression tests were added for the disclosure-version-mismatch fix.
-- **Build:** `vite build` — success; `dist/index.html` 1.59 kB, `assets/index-CNAEBgJ3.css` 5.78 kB,
-  `assets/index-Vh6GkHar.js` 51.67 kB (gzip 15.06 kB).
-- **Production smoke:** `https://web3-participation-loop.vercel.app` → HTTP 200, `<title>MUST Company - Participation Loop Prototype</title>`, JS bundle `assets/index-Vh6GkHar.js` served.
+- **Tests:** Vitest — 12 test files, **124/124 tests passing** (`prototype/`) — was 101/101; regression tests
+  for the disclosure-version fix and a product-invariant suite (`test/invariants.test.ts`) were added.
+- **Build:** `vite build` — success; `dist/index.html` 1.59 kB, `assets/index-DuTS6n_z.css` 7.19 kB,
+  `assets/index-CDklD7Kr.js` 57.36 kB (gzip 16.70 kB).
+- **Production smoke:** `https://web3-participation-loop.vercel.app` → HTTP 200, `<title>MUST Company - Participation Loop Prototype</title>`, JS bundle `assets/index-CDklD7Kr.js` served (identical to the local build).
 - **Dataset integrity:** `data/synthetic-participants.csv` — 20 labelled synthetic participant records; the seed expands these into the runtime event log and funnel, validated by the `seed` test suite.
 - **Secrets scan:** `git grep` over HEAD for `eyJ…`, `sk-…`, `AKIA…`, `BEGIN … PRIVATE KEY`, `VERCEL_`, `SERVICE_ROLE` → no matches. No `process.env` / `import.meta.env` usage in tracked source. No credentials or API keys are committed. The runtime-locally-generated `prototype/.env.local` (Vercel OIDC token) is gitignored and was removed from disk; no such file is committed.
 - **Deployment layout:** the repository (`Flux-web3/web3-participation-loop`) deploys to a single Vercel project — framework `vite`, root directory `prototype`, output `dist` — at `https://web3-participation-loop.vercel.app` (HTTP 200, READY).
@@ -353,7 +353,10 @@ Record actual corrections discovered during implementation and QA.
 - **Vercel config invalid property:** `vercel.json` initially contained `rootDirectory`, which the Vercel CLI rejects ("should NOT have additional property"). `rootDirectory` is a project setting, not a `vercel.json` key; the file was corrected and the setting applied via the Vercel project API.
 - **Vercel project configuration:** the initial deployment failed because the Vercel project lacked build configuration (no root directory / framework preset), producing failing builds and 404 URLs. Fixed by configuring the project (`rootDirectory=prototype`, framework `vite`, output `dist`), redeploying successfully, and confirming HTTP 200 at `https://web3-participation-loop.vercel.app`.
 - **Dataset line-ending artifact:** `data/synthetic-participants.csv` showed a phantom modified status caused by LF/CRLF normalization; content verified identical to HEAD and restored (no data change). A `.gitattributes` entry pinning `data/*.csv` to LF was added to prevent this recurring on Windows checkouts.
-- **Disclosure-version mismatch on review submission (commit `ba49f35`):** in the live journey, the "I only read the previous version (v1)" toggle existed only on the view step, so a review could be submitted against the current disclosure version (v2) while the recorded view was against v1 — producing a spurious "viewed v1 but submitted against v2" rejection. Fixed by carrying the review's disclosure version from the participant's latest `DisclosureViewed` event, surfacing a stale-view warning, and offering a "Re-read current disclosure (v2)" action. Two regression tests were added (103/103 passing).
+- **Disclosure-version mismatch on review submission (commit `ba49f35`):** in the live journey, the prior-version acknowledgement toggle existed only on the disclosure-view step, so a review could be submitted against the current disclosure version (v2) while the recorded view was against v1 — producing a spurious "viewed v1 but submitted against v2" rejection. Fixed by carrying the review's disclosure version from the participant's latest `DisclosureViewed` event, surfacing a stale-view warning, and offering an action to re-read the current disclosure version. Two regression tests were added.
+- **Duplicate ownership ("first valid submission wins"), commit `62fe9ea`:** duplicate detection previously treated the earliest earlier review with the same content hash as the owner even when that review had been rejected or abuse-flagged, so a later valid identical review could be mislabelled a duplicate. The owner is now the earliest earlier review with that hash that actually qualified. The seed baseline is unaffected (its only duplicate, U013, copies the qualified U007).
+- **Acknowledgement finality, commit `62fe9ea`:** a later acknowledgement attempt could overwrite a recorded success. A succeeded acknowledgement is now final; retry after a failure remains allowed.
+- **UX pass, commit `0d6f4e3`:** scenario cards show expected vs actual outcomes derived from events; repeat scenario runs no longer self-collide; the live journey explains qualified / not-qualified outcomes and labels the two independent post-qualification branches; the dashboard separates funnel, qualification & business conversion, and the optional wallet acknowledgement, and offers a reset to the 119-event seed; mobile horizontal overflow fixed.
 
 ## Limitations
 

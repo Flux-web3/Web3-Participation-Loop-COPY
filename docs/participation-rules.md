@@ -73,8 +73,11 @@ To be treated as substantive, a review must offer a genuine question or observat
 
 ### First-Writer-Wins Duplicate Rule
 
-- First-writer-wins applies: the first submission of identical content is kept.
-- Any later submission of identical content is a **duplicate**.
+- First *valid* writer wins: the earliest **qualified** review of a given normalized content
+  (SHA-256 hash of the question and why-it-matters fields) owns that content.
+- Any later submission of identical content is a **duplicate** of that qualified review.
+- An earlier copy that was rejected or abuse-flagged does not own the content, so it cannot
+  block a later valid review; that later review is evaluated on its own merits.
 - A duplicate is recorded as `duplicate_detected` and never increases qualified conversion.
 
 ## Qualification Rules
@@ -130,10 +133,11 @@ Wallet participation is **optional at every step**.
 | --- | --- |
 | `not_attempted` | Participant was never prompted or chose not to attempt. |
 | `declined` | Participant chose to continue without wallet. |
+| `pending` | Acknowledgement was attempted; outcome not yet resolved. |
 | `failed` | Connection was attempted but failed. |
 | `success` | Connection succeeded. |
 
-All four outcomes are consistent with a qualified participant. None of them changes qualification status.
+All five outcomes are consistent with a qualified participant. None of them changes qualification status.
 
 ## Acknowledgement Rules
 
@@ -195,7 +199,7 @@ No incentive that implies financial value or guaranteed reward may be offered.
 | Qualification | All seven gates: Eligible, Disclosure Viewed, Complete, Disclosure Referenced, Substantive, Not Duplicate, Not Abuse Flagged. |
 | Rejections | ineligible, non_substantive, disclosure_version_mismatch, incomplete, no_section_reference. |
 | Abuse | Synthetic profile classification; never converts; visible to operations. |
-| Wallet | Optional at every step; decline never invalidates; outcomes not_attempted/declined/failed/success all valid. |
+| Wallet | Optional at every step; decline never invalidates; outcomes not_attempted/declined/pending/failed/success all valid. |
 | Acknowledgement | Failure recorded; review stays qualified; follow-up eligibility unaffected. |
 | Business follow-up | Only from qualified reviews; review call, information request, partner/practitioner conversation. |
 | Incentives | Access, reviewer status, review priority, future participation only; never tokens, TGE, airdrop, yield, return, ownership. |
@@ -206,6 +210,6 @@ No incentive that implies financial value or guaranteed reward may be offered.
 The rules above are demonstrated in the working prototype at **https://web3-participation-loop.vercel.app**:
 
 - The five-stage core journey is shown under the **#journey** route (acquisition channel selection, waitlist registration, disclosure access and version, review submission with the three required fields, and the seven-gate qualification result).
-- Qualified and rejected outcomes, rejection reasons, duplicate detection, abuse classification, wallet outcomes (`not_attempted`/`declined`/`failed`/`success`), acknowledgement success and failure, and follow-up creation are demonstrated in the journey against synthetic data.
+- Qualified and rejected outcomes, rejection reasons, duplicate detection, abuse classification, wallet outcomes (`not_attempted`/`declined`/`pending`/`failed`/`success`), acknowledgement success and failure, and follow-up creation are demonstrated in the journey against synthetic data.
 - The **#dashboard** route maps to the Measurement Separation rules: waitlist activation, disclosure engagement, review submission, review qualification, qualified participation, business follow-up conversion, and acknowledgement success rate are shown as separate funnel metrics, with wallet activity kept separate from business conversion.
 - Scenario coverage in the prototype includes: valid review qualifies, invalid review rejected, duplicate submission handled, abuse scenario handled, wallet decline supported, and acknowledgement failure preserving qualification.

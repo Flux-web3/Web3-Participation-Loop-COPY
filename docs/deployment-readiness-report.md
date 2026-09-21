@@ -7,7 +7,7 @@
 ## 1. Executive Summary
 
 The Web3 participation loop prototype is complete, verified, and live. The codebase passes its full
-verification stack (typecheck, 103 tests, production build), the dataset is consistent with the
+verification stack (typecheck, 124 tests, production build), the dataset is consistent with the
 documented baseline, no credentials or secrets are committed, and one working Vercel deployment is
 live and serving the current build.
 
@@ -16,12 +16,18 @@ live and serving the current build.
 | `Flux-web3/web3-participation-loop` | `web3-participation-loop` | https://web3-participation-loop.vercel.app | LIVE — READY, HTTP 200 |
 
 **Recent fix (2026-09-21, commit `ba49f35`):** the live journey previously let a review be
-submitted against disclosure v2 while the participant's recorded view was v1 (the "read the
-previous version" toggle existed only on the view step), producing a spurious version-mismatch
+submitted against disclosure v2 while the participant's recorded view was v1 (the prior-version
+acknowledgement toggle existed only on the disclosure-view step), producing a spurious version-mismatch
 rejection. The review now carries the version from the participant's latest disclosure-view event,
-with a stale-view warning and a re-read action; two regression tests were added (103/103 passing).
+with a stale-view warning and a re-read action; two regression tests were added.
 A `.gitattributes` entry was also added pinning `data/*.csv` to LF, eliminating a phantom
 CRLF-modified status on Windows checkouts.
+
+**Later fixes (2026-09-21, commits `62fe9ea`, `0d6f4e3`):** duplicate ownership now follows
+"first valid submission wins" (a rejected or abuse-flagged first copy no longer blocks a later valid
+review); a succeeded acknowledgement can no longer be overwritten; a product-invariant test suite was
+added; and a UX pass clarified journey outcomes, scenario results, and dashboard grouping. The seeded
+baseline (20 entries / 119 events) is unchanged.
 
 ## 2. Verification Performed
 
@@ -30,11 +36,11 @@ All commands were executed from `prototype/` on `main` at the shipped commit.
 | Check | Command | Result |
 | --- | --- | --- |
 | Typecheck | `npm run typecheck` (`tsc --noEmit`) | Clean — no errors |
-| Unit/integration tests | `npm test` (Vitest) | 11 files, 103/103 passing |
+| Unit/integration tests | `npm test` (Vitest) | 12 files, 124/124 passing |
 | Production build | `npm run build` (`vite build`) | Success |
-| Build artifacts | — | `index.html` 1.59 kB, `assets/index-CNAEBgJ3.css` 5.78 kB, `assets/index-Vh6GkHar.js` 51.67 kB (gzip 15.06 kB) |
-| Production smoke | HTTP GET `https://web3-participation-loop.vercel.app` | 200 — `MUST Company - Participation Loop Prototype`, bundle `assets/index-Vh6GkHar.js` served |
-| Deployed == source | Compare live bundle vs local build | Match — live serves `index-Vh6GkHar.js`, identical to the current build |
+| Build artifacts | — | `index.html` 1.59 kB, `assets/index-DuTS6n_z.css` 7.19 kB, `assets/index-CDklD7Kr.js` 57.36 kB (gzip 16.70 kB) |
+| Production smoke | HTTP GET `https://web3-participation-loop.vercel.app` | 200 — `MUST Company - Participation Loop Prototype`, bundle `assets/index-CDklD7Kr.js` served |
+| Deployed == source | Compare live bundle vs local build | Match — live serves `index-CDklD7Kr.js`, identical to the current build |
 | Secrets scan | `git grep` for credential patterns over HEAD | No matches; no `process.env`/`import.meta.env` in tracked source |
 | Dataset consistency | Inspect `data/synthetic-participants.csv` | 20 labelled synthetic participant records; runtime event log/funnel validated by the `seed` test suite |
 | Dependency audit | `npm audit` | Findings confined to dev/build-time dependencies, no runtime exposure (see §5) |
@@ -49,7 +55,7 @@ All commands were executed from `prototype/` on `main` at the shipped commit.
 ## 4. Deployment
 
 - The repository deploys to a single Vercel project (`web3-participation-loop`) with root directory `prototype`, framework `vite`, output `dist`.
-- The production alias `https://web3-participation-loop.vercel.app` returns HTTP 200 and serves the current build (`assets/index-Vh6GkHar.js`), confirming the deployed site matches the shipped commit.
+- The production alias `https://web3-participation-loop.vercel.app` returns HTTP 200 and serves the current build (`assets/index-CDklD7Kr.js`), confirming the deployed site matches the shipped commit.
 - No `.env` / `.env.local` or credential files are committed; any locally-generated Vercel OIDC token file is gitignored.
 
 ## 5. Known Items / Accepted Risks (not blockers for this assessment)

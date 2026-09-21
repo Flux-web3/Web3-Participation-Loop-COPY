@@ -40,7 +40,7 @@ source of truth, and every funnel metric is derived from it.
 - `prototype/commands/` — command handlers that append events
 - `prototype/lib/` — utilities (pure-TS SHA-256 for duplicate detection)
 - `prototype/src/` — UI: hash-routed prototype flow + operations dashboard
-- `prototype/test/` — Vitest suites (103 tests)
+- `prototype/test/` — Vitest suites (124 tests)
 - `data/synthetic-participants.csv` — labelled synthetic dataset
 
 ## Run locally
@@ -49,7 +49,7 @@ source of truth, and every funnel metric is derived from it.
 cd prototype
 npm install
 npm run typecheck   # tsc --noEmit
-npm test            # vitest run — 103 tests
+npm test            # vitest run — 124 tests
 npm run dev         # local dev server
 npm run build       # production build → dist/
 npm run preview     # serve the production build
@@ -70,7 +70,7 @@ npm run preview     # serve the production build
 
 ## Demo
 
-A walkthrough video of the six scenarios and the operations dashboard is being produced locally
-(`demo/`); it is not committed to this repository and no Loom or other hosted recording exists.
-The live prototype and dashboard links above let the six scenarios and metrics be verified
-directly. All data shown is synthetic.
+A narrated, ≤5-minute walkthrough of the six scenarios and the operations dashboard is being
+produced separately, outside this repository; no Loom or other hosted recording exists or is
+claimed. The live prototype and dashboard links above let the six scenarios and metrics be
+verified directly. All data shown is synthetic.
