@@ -23,7 +23,3 @@ export function pct(value: number): string {
 export function rateTitle(rate: { numerator: number; denominator: number }): string {
   return `${rate.numerator} / ${rate.denominator}`;
 }
-
-export function yesNo(value: boolean): string {
-  return value ? 'yes' : 'no';
-}

@@ -93,6 +93,14 @@ export function computeFunnelMetrics(events: readonly DomainEvent[]): FunnelMetr
   );
   const followUps = events.filter((e) => e.type === 'BusinessFollowUpCreated');
   const reviewsWithFollowUp = new Set(followUps.map((f) => f.reviewId));
+  // Directive §14 numerator: distinct *qualified* reviews touched by >=1 follow-up
+  // (multiple follow-ups on one review convert once). Follow-ups are command-guarded
+  // to qualified reviews, so this equals reviewsWithFollowUp.size by construction —
+  // but we filter explicitly so the displayed stat and the conversion rate share one
+  // definition and can never drift apart.
+  const qualifiedReviewsWithFollowUp = [...reviewsWithFollowUp].filter((reviewId) =>
+    qualifiedReviewIds.has(reviewId),
+  ).length;
 
   const attempts = events.filter((e) => e.type === 'WalletAcknowledgementAttempted').length;
   const succeeded = events.filter((e) => e.type === 'WalletAcknowledgementSucceeded').length;
@@ -104,12 +112,8 @@ export function computeFunnelMetrics(events: readonly DomainEvent[]): FunnelMetr
     reviewSubmissions: submissions.length,
     qualifiedReviews: qualified.length,
     eligibleParticipants: eligible,
-followUpsCreated: followUps.length,
-    // Count only distinct qualified reviews touched by at least one follow-up
-    // (multiple follow-ups on one review convert once).
-    qualifiedReviewsWithFollowUp: [...reviewsWithFollowUp].filter((reviewId) =>
-      qualifiedReviewIds.has(reviewId),
-    ).length,
+    followUpsCreated: followUps.length,
+    qualifiedReviewsWithFollowUp,
     acknowledgementAttempts: attempts,
     acknowledgementSucceeded: succeeded,
     waitlistActivation: rateOf(waitlisted.length, acquisitions.length),
@@ -117,10 +121,7 @@ followUpsCreated: followUps.length,
     reviewSubmission: rateOf(submissions.length, viewers.length),
     reviewQualification: rateOf(qualified.length, submissions.length),
     qualifiedParticipation: rateOf(qualified.length, eligible),
-    businessFollowUpConversion: rateOf(
-      reviewsWithFollowUp.size,
-      qualified.length,
-    ),
+    businessFollowUpConversion: rateOf(qualifiedReviewsWithFollowUp, qualified.length),
     acknowledgementSuccess: rateOf(succeeded, attempts),
   };
 }

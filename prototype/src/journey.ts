@@ -1,14 +1,16 @@
 import type {
   AbuseProfile,
   Channel,
+  DomainEvent,
   EligibilityStatus,
   FollowUpType,
+  GateCheck,
   ParticipantId,
   ReviewContent,
   SectionId,
   WalletAckStatus,
 } from '@/domain';
-import { CHANNELS, FOLLOW_UP_TYPES, deriveWalletStatus, projectParticipant } from '@/domain';
+import { CHANNELS, FOLLOW_UP_TYPES, STATUS_RANK, deriveWalletStatus, projectParticipant } from '@/domain';
 import type { CommandContext } from '@/commands/context';
 import {
   acceptAcquisition,
@@ -191,6 +193,8 @@ interface LiveState {
   prompted: boolean;
   connected: boolean;
   ackAttempted: boolean;
+  /** The seven-gate audit from the ReviewEvaluated event, once a review exists. */
+  checks?: GateCheck[];
 }
 
 export function dispositionOf(type: EventType | undefined): LiveState['disposition'] {
@@ -222,6 +226,9 @@ function liveState(ctx: CommandContext, id: ParticipantId): LiveState {
     prompted: events.some((e) => e.type === 'WalletPrompted'),
     connected: events.some((e) => e.type === 'WalletConnected'),
     ackAttempted: events.some((e) => e.type === 'WalletAcknowledgementAttempted'),
+    checks: events.find(
+      (e): e is Extract<DomainEvent, { type: 'ReviewEvaluated' }> => e.type === 'ReviewEvaluated',
+    )?.checks,
   };
 }
 
@@ -335,7 +342,7 @@ function renderNewParticipant(ctx: CommandContext, refresh: () => void): string 
         <option value="synthetic_bot">synthetic_bot (flagged at integrity gate)</option>
       </select>
     </div>
-    <button class="btn primary" id="live-start">Start participant</button>
+    <button class="btn primary" id="live-start">Acquire participant</button>
   `;
 }
 
@@ -453,14 +460,21 @@ function wireLiveActions(root: HTMLElement, ctx: CommandContext, refresh: () => 
 
 function renderLive(ctx: CommandContext, session: NonNullable<typeof live>, refresh: () => void): string {
   const state = liveState(ctx, session.id);
-  const status = state.participant?.status ?? '';
-  const progress: string[] = ['acquired', 'waitlisted', 'disclosure_viewed', 'review_submitted', state.disposition ?? ''];
-  const currentRank = progress.indexOf(status);
+  const status = state.participant?.status;
 
-  const steps = progress.map((label, i) => {
-    const done = label !== '' && i <= currentRank;
+  // Five canonical journey chips; the final chip is the review outcome. Both
+  // terminal statuses (qualified / disqualified) share STATUS_RANK 4 and resolve
+  // to the outcome chip, so a disqualified participant lights the full stepper
+  // with the outcome chip labelled by its disposition — never an all-grey stepper
+  // that contradicts a red disposition badge.
+  const outcomeLabel = state.disposition ?? 'outcome';
+  const stages = ['acquired', 'waitlisted', 'disclosure_viewed', 'review_submitted', outcomeLabel];
+  const currentRank = status ? STATUS_RANK[status] : -1;
+
+  const steps = stages.map((label, i) => {
+    const done = currentRank >= 0 && i <= currentRank;
     const active = i === currentRank;
-    return `<li class="${done ? 'done' : ''} ${active ? 'active' : ''}">${escapeHtml(label || 'outcome')}</li>`;
+    return `<li class="${done ? 'done' : ''} ${active ? 'active' : ''}">${escapeHtml(label)}</li>`;
   }).join('');
 
   const dispositionBadge = state.disposition
@@ -538,6 +552,29 @@ function renderLive(ctx: CommandContext, session: NonNullable<typeof live>, refr
     </label>`
     : '';
 
+  // Once a review is submitted, the ReviewEvaluated event carries all seven gate
+  // results. Surfacing them makes the disposition self-explanatory: a rejected or
+  // duplicate review shows exactly which gates passed and which one decided it.
+  const gateChecklist = state.checks
+    ? `
+      <div class="box gate-audit">
+        <h4 class="gate-title">Seven qualification gates</h4>
+        <p class="muted">Every gate is evaluated and recorded on the review. The disposition above is the highest-precedence failure — all seven results are retained, so even a rejected review shows which gates passed.</p>
+        <ul class="gate-list">
+          ${state.checks
+            .map(
+              (c) => `
+            <li class="gate ${c.passed ? 'pass' : 'fail'}">
+              <span class="gate-mark" aria-hidden="true">${c.passed ? '✓' : '✗'}</span>
+              <span class="gate-name mono">${escapeHtml(c.gate)}</span>
+              <span class="gate-note muted">${escapeHtml(c.note ?? '')}</span>
+            </li>`,
+            )
+            .join('')}
+        </ul>
+      </div>`
+    : '';
+
   return `
     <div class="live-head">
       <span class="mono">${escapeHtml(session.id)}</span>
@@ -559,7 +596,7 @@ function renderLive(ctx: CommandContext, session: NonNullable<typeof live>, refr
 
     ${reviewForm}
 
-    ${state.submitted && !state.disposition ? '<p class="muted">Review submitted — evaluation in progress…</p>' : ''}
+    ${gateChecklist}
 
     ${followUpPanel}
     ${isQualified ? walletPanel : ''}
