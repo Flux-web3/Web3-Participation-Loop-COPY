@@ -27,7 +27,7 @@ function render(): void {
   dashboardView.hidden = !showDashboard;
 
   if (showDashboard) {
-    renderDashboard(dashboardView, ctx);
+    renderDashboard(dashboardView, ctx, boot);
   } else {
     renderJourney(journeyView, ctx, render);
   }

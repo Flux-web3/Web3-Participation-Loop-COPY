@@ -1,7 +1,7 @@
 import type { CommandContext } from '@/commands/context';
 import type { FunnelMetrics } from '@/analytics';
 import { buildParticipantRows, computeDashboard } from '@/analytics';
-import { SYNTHETIC_SEED } from '@/seed';
+import { SYNTHETIC_SEED, buildSyntheticStore } from '@/seed';
 import { escapeHtml, pct, rateTitle } from './format';
 
 type RateKey =
@@ -13,53 +13,55 @@ type RateKey =
   | 'businessFollowUpConversion'
   | 'acknowledgementSuccess';
 
-const RATE_CARDS: ReadonlyArray<{ key: RateKey; label: string }> = [
-  { key: 'waitlistActivation', label: 'Waitlist Activation' },
-  { key: 'disclosureEngagement', label: 'Disclosure Engagement' },
-  { key: 'reviewSubmission', label: 'Review Submission' },
-  { key: 'reviewQualification', label: 'Review Qualification' },
-  { key: 'qualifiedParticipation', label: 'Qualified Participation' },
-  { key: 'businessFollowUpConversion', label: 'Business Follow-up Conversion' },
-  { key: 'acknowledgementSuccess', label: 'Acknowledgement Success' },
+/** The five funnel stages, each with the step rate that feeds it. */
+const FUNNEL_STAGES: ReadonlyArray<{ count: keyof FunnelMetrics; label: string; rate?: RateKey; rateLabel?: string }> = [
+  { count: 'acquisitionEntries', label: 'Acquisition entries' },
+  { count: 'waitlistParticipants', label: 'Joined waitlist', rate: 'waitlistActivation', rateLabel: 'of acquisitions' },
+  { count: 'disclosureViewers', label: 'Read disclosure', rate: 'disclosureEngagement', rateLabel: 'of waitlist' },
+  { count: 'reviewSubmissions', label: 'Submitted review', rate: 'reviewSubmission', rateLabel: 'of readers' },
+  { count: 'qualifiedReviews', label: 'Qualified review', rate: 'reviewQualification', rateLabel: 'of submissions' },
 ];
 
-const STAT_CELLS: ReadonlyArray<{ key: keyof FunnelMetrics; label: string }> = [
-  { key: 'acquisitionEntries', label: 'Acquisition entries' },
-  { key: 'waitlistParticipants', label: 'Waitlist participants' },
-  { key: 'disclosureViewers', label: 'Disclosure viewers' },
-  { key: 'reviewSubmissions', label: 'Review submissions' },
-  { key: 'qualifiedReviews', label: 'Qualified reviews' },
-  { key: 'eligibleParticipants', label: 'Eligible participants' },
-  { key: 'followUpsCreated', label: 'Follow-ups created' },
-  { key: 'qualifiedReviewsWithFollowUp', label: 'Qualified reviews with follow-up' },
-  { key: 'acknowledgementAttempts', label: 'Acknowledgement attempts' },
-  { key: 'acknowledgementSucceeded', label: 'Acknowledgements succeeded' },
+const OUTCOME_CARDS: ReadonlyArray<{ key: RateKey; label: string; note: string }> = [
+  { key: 'reviewQualification', label: 'Review qualification rate', note: 'qualified ÷ submitted reviews (the selected bottleneck)' },
+  { key: 'qualifiedParticipation', label: 'Qualified participation', note: 'qualified reviews ÷ eligible participants' },
+  { key: 'businessFollowUpConversion', label: 'Business follow-up conversion', note: 'qualified reviews with ≥1 follow-up ÷ qualified reviews' },
 ];
 
 const WALLET_ORDER = ['not_attempted', 'declined', 'pending', 'success', 'failed'] as const;
 
-export function renderDashboard(root: HTMLElement, ctx: CommandContext): void {
+/** Number of events the deterministic synthetic seed produces. */
+const SEED_EVENT_COUNT = buildSyntheticStore().size();
+
+export function renderDashboard(root: HTMLElement, ctx: CommandContext, onResetToSeed: () => void): void {
   const snapshot = computeDashboard(ctx.store.all());
   const labels = new Map(SYNTHETIC_SEED.map((r) => [r.id, r.label]));
+  const sessionEvents = ctx.store.size() - SEED_EVENT_COUNT;
 
-  const rateCards = RATE_CARDS.map(({ key, label }) => {
+  const funnel = FUNNEL_STAGES.map(({ count, label, rate, rateLabel }) => {
+    const r = rate ? snapshot.funnel[rate] : undefined;
+    return `
+      <div class="card kpi funnel-stage">
+        <div class="kpi-label">${escapeHtml(label)}</div>
+        <div class="kpi-value">${snapshot.funnel[count]}</div>
+        <div class="kpi-raw">${
+          r ? `${escapeHtml(pct(r.value))} ${escapeHtml(rateLabel ?? '')} <span title="${escapeHtml(rateTitle(r))}">(${r.numerator}/${r.denominator})</span>` : 'entry point · any channel'
+        }</div>
+      </div>`;
+  }).join('');
+
+  const outcomes = OUTCOME_CARDS.map(({ key, label, note }) => {
     const rate = snapshot.funnel[key];
     return `
       <div class="card kpi">
         <div class="kpi-label">${escapeHtml(label)}</div>
         <div class="kpi-value">${escapeHtml(pct(rate.value))}</div>
-        <div class="kpi-raw" title="${escapeHtml(rateTitle(rate))}">${escapeHtml(
-          `${rate.numerator} / ${rate.denominator}`,
-        )}</div>
+        <div class="kpi-raw">${rate.numerator} / ${rate.denominator}</div>
+        <div class="kpi-note">${escapeHtml(note)}</div>
       </div>`;
   }).join('');
 
-  const stats = STAT_CELLS.map(
-    ({ key, label }) =>
-      `<div class="stat"><span class="stat-value">${snapshot.funnel[key]}</span><span class="stat-label">${escapeHtml(
-        label,
-      )}</span></div>`,
-  ).join('');
+  const ack = snapshot.funnel.acknowledgementSuccess;
 
   const channels = snapshot.channels
     .map(
@@ -81,7 +83,7 @@ export function renderDashboard(root: HTMLElement, ctx: CommandContext): void {
     (status) =>
       `<div class="wallet-cell">
         <span class="wallet-count">${snapshot.wallet.statuses[status]}</span>
-        <span class="wallet-status">${escapeHtml(status)}</span>
+        <span class="wallet-status">${escapeHtml(status.replace('_', ' '))}</span>
       </div>`,
   ).join('');
 
@@ -118,30 +120,43 @@ export function renderDashboard(root: HTMLElement, ctx: CommandContext): void {
 
   root.innerHTML = `
     <h2>Operations Dashboard</h2>
-    <p class="muted">
-      All metrics are projected from the append-only event log (${ctx.store.size()} events).
-      Rates use the directive-fixed denominators. Wallet acknowledgement is a disjoint,
-      optional side-channel and never influences the funnel.
-    </p>
+    <div class="log-status">
+      <p class="muted">
+        Every figure below is derived from the append-only event log: <strong>${ctx.store.size()} events</strong>
+        ${sessionEvents > 0
+          ? `— the ${SEED_EVENT_COUNT}-event synthetic seed plus ${sessionEvents} added in this session.`
+          : `— the synthetic seed baseline.`}
+      </p>
+      ${sessionEvents > 0 ? '<button class="btn" id="reset-seed">Reset to seed baseline</button>' : ''}
+    </div>
 
-    <section aria-label="Funnel rates">
-      <h3>Funnel &amp; business conversion</h3>
-      <div class="kpi-grid">${rateCards}</div>
-      <div class="stat-grid">${stats}</div>
+    <section aria-label="Participation funnel">
+      <h3>Participation funnel</h3>
+      <div class="kpi-grid funnel-grid">${funnel}</div>
+      <p class="muted small">${snapshot.funnel.eligibleParticipants} of ${snapshot.funnel.acquisitionEntries} acquired participants are eligible. Acquisition channel is attribution only.</p>
+    </section>
+
+    <section aria-label="Qualification and business conversion">
+      <h3>Qualification &amp; business conversion</h3>
+      <div class="kpi-grid outcome-grid">${outcomes}</div>
+      <p class="muted small">${snapshot.funnel.followUpsCreated} follow-up(s) recorded. Only qualified reviews can receive a follow-up; wallet activity never counts as conversion.</p>
     </section>
 
     <section aria-label="Wallet acknowledgement">
-      <h3>Wallet acknowledgement (optional, simulated)</h3>
-      <div class="wallet-grid">${wallet}</div>
-      <p class="muted">
-        ${snapshot.wallet.attempts} attempt(s), ${snapshot.wallet.successful} succeeded.
-        Declining or not attempting never blocks qualification.
-      </p>
+      <h3>Wallet acknowledgement <span class="muted">(optional, simulated — separate from the funnel)</span></h3>
+      <div class="wallet-grid">${wallet}
+        <div class="wallet-cell wallet-rate">
+          <span class="wallet-count">${escapeHtml(pct(ack.value))}</span>
+          <span class="wallet-status">success rate (${ack.numerator}/${ack.denominator} attempts)</span>
+        </div>
+      </div>
+      <p class="muted small">Declining, failing, or never attempting the acknowledgement does not affect qualification or follow-up.</p>
     </section>
 
     <div class="two-col">
       <section aria-label="Acquisition channels">
         <h3>Acquisition &amp; attribution</h3>
+        <div class="table-scroll">
         <table class="data-table">
           <thead>
             <tr>
@@ -151,14 +166,15 @@ export function renderDashboard(root: HTMLElement, ctx: CommandContext): void {
           </thead>
           <tbody>${channels}</tbody>
         </table>
+        </div>
       </section>
 
       <section aria-label="Integrity">
-        <h3>Integrity signals</h3>
+        <h3>Integrity signals <span class="muted">(excluded, but visible)</span></h3>
         <ul>${integrity}</ul>
         <p class="muted">
-          Labels come from the synthetic seed; the prototype is not a Sybil detector.
-          Duplicates and abuse are visible to operations but never increase conversion.
+          Duplicates and abuse-flagged reviews stay in the log and in the table below, but never count as
+          qualified or converted. Abuse labels are synthetic; this prototype is not a Sybil detector.
         </p>
       </section>
     </div>
@@ -171,11 +187,13 @@ export function renderDashboard(root: HTMLElement, ctx: CommandContext): void {
             <tr>
               <th>ID</th><th>Scenario</th><th>Channel</th><th>Eligibility</th><th>Abuse</th>
               <th>Status</th><th>Disposition</th><th>Reason</th><th>Dup of</th>
-              <th>Review</th><th>Section</th><th>Wallet</th><th>F/U</th>
+              <th>Review</th><th>Section</th><th>Wallet</th><th>Follow-ups</th>
             </tr>
           </thead>
           <tbody>${rows}</tbody>
         </table>
       </div>
     </section>`;
+
+  root.querySelector<HTMLButtonElement>('#reset-seed')?.addEventListener('click', onResetToSeed);
 }

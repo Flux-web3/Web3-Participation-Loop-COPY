@@ -32,17 +32,36 @@ import { escapeHtml } from './format';
 
 let live: { id: ParticipantId; channel: Channel; eligibility: EligibilityStatus; abuseProfile: AbuseProfile } | undefined;
 let scenarioCounters: Record<string, number> = {};
+/** Latest participant produced by each scripted scenario, for its result line. */
+let scenarioRuns: Record<string, ParticipantId> = {};
 
 export function resetLiveSession(): void {
   live = undefined;
   scenarioCounters = {};
+  scenarioRuns = {};
+}
+
+/**
+ * Repeat runs of a scenario get a run marker in the question so the
+ * content-hash duplicate gate never turns a second run of A, B, D, E or F into
+ * an accidental duplicate. Scenario C does not use this: it duplicates by design.
+ */
+function forRun(content: ReviewContent, run: number): ReviewContent {
+  return run === 1 ? content : { ...content, question: `${content.question} (demo run ${run})` };
+}
+
+function nextRun(id: string): number {
+  return (scenarioCounters[id] = (scenarioCounters[id] ?? 0) + 1);
 }
 
 interface Scenario {
   id: string;
   title: string;
   blurb: string;
-  build: () => SyntheticSeedRecord;
+  /** The outcome this scenario is designed to produce, shown next to the actual result. */
+  expected: string;
+  /** Builds the next run's record; `run` defaults to this scenario's next run number. */
+  build: (run?: number) => SyntheticSeedRecord;
 }
 
 const HAPPY_PATH_CONTENT: ReviewContent = {
@@ -87,9 +106,10 @@ export const DEMO_SCENARIOS: readonly Scenario[] = [
   {
     id: 'A',
     title: 'Normal qualified participant',
-    blurb: 'Walks the canonical journey to qualification and a simulated acknowledged acknowledgement.',
-    build: () => ({
-      id: `DEMO-A${(scenarioCounters.A = (scenarioCounters.A ?? 0) + 1)}`,
+    blurb: 'Full journey: the review qualifies, a business follow-up is recorded, and the optional acknowledgement succeeds.',
+    expected: 'qualified · follow-up recorded · wallet success',
+    build: (run = nextRun('A')) => ({
+      id: `DEMO-A${run}`,
       label: 'demo_normal_qualified',
       channel: 'direct',
       eligibility: 'eligible',
@@ -97,7 +117,7 @@ export const DEMO_SCENARIOS: readonly Scenario[] = [
       journey: [
         { step: 'waitlist' },
         { step: 'view' },
-        { step: 'submit', content: HAPPY_PATH_CONTENT },
+        { step: 'submit', content: forRun(HAPPY_PATH_CONTENT, run) },
         { step: 'followup', followUpType: 'intro_call' },
         { step: 'wallet.connect' },
         { step: 'wallet.ack', outcome: 'success' },
@@ -107,9 +127,10 @@ export const DEMO_SCENARIOS: readonly Scenario[] = [
   {
     id: 'B',
     title: 'Wallet declined participant',
-    blurb: 'A qualified review whose participant opts out of the optional wallet acknowledgement.',
-    build: () => ({
-      id: `DEMO-B${(scenarioCounters.B = (scenarioCounters.B ?? 0) + 1)}`,
+    blurb: 'Qualifies, then declines the optional wallet. Qualification and follow-up eligibility are unaffected.',
+    expected: 'qualified · follow-up available · wallet declined',
+    build: (run = nextRun('B')) => ({
+      id: `DEMO-B${run}`,
       label: 'demo_wallet_declined',
       channel: 'community',
       eligibility: 'eligible',
@@ -117,7 +138,7 @@ export const DEMO_SCENARIOS: readonly Scenario[] = [
       journey: [
         { step: 'waitlist' },
         { step: 'view' },
-        { step: 'submit', content: WALLET_DECLINED_CONTENT },
+        { step: 'submit', content: forRun(WALLET_DECLINED_CONTENT, run) },
         { step: 'wallet.decline' },
       ],
     }),
@@ -125,9 +146,10 @@ export const DEMO_SCENARIOS: readonly Scenario[] = [
   {
     id: 'C',
     title: 'Duplicate submission',
-    blurb: 'Reposts the seed participant U007 review verbatim; the hash matcher flags a duplicate against R-U007-1.',
-    build: () => ({
-      id: `DEMO-C${(scenarioCounters.C = (scenarioCounters.C ?? 0) + 1)}`,
+    blurb: "Reposts seed participant U007's qualified review verbatim. The content hash matches R-U007-1, so it is recorded as a duplicate and excluded.",
+    expected: 'duplicate of R-U007-1 · no follow-up',
+    build: (run = nextRun('C')) => ({
+      id: `DEMO-C${run}`,
       label: 'demo_duplicate',
       channel: 'social',
       eligibility: 'eligible',
@@ -138,9 +160,10 @@ export const DEMO_SCENARIOS: readonly Scenario[] = [
   {
     id: 'D',
     title: 'Failed acknowledgement',
-    blurb: 'Qualifies, connects a wallet, and the simulated acknowledgement fails with an error.',
-    build: () => ({
-      id: `DEMO-D${(scenarioCounters.D = (scenarioCounters.D ?? 0) + 1)}`,
+    blurb: 'Qualifies and connects a wallet, but the simulated acknowledgement fails. Qualification is unchanged.',
+    expected: 'qualified · follow-up available · wallet failed',
+    build: (run = nextRun('D')) => ({
+      id: `DEMO-D${run}`,
       label: 'demo_ack_failed',
       channel: 'partner',
       eligibility: 'eligible',
@@ -148,7 +171,7 @@ export const DEMO_SCENARIOS: readonly Scenario[] = [
       journey: [
         { step: 'waitlist' },
         { step: 'view' },
-        { step: 'submit', content: ACK_FAIL_CONTENT },
+        { step: 'submit', content: forRun(ACK_FAIL_CONTENT, run) },
         { step: 'wallet.connect' },
         { step: 'wallet.ack', outcome: 'failure' },
       ],
@@ -157,27 +180,29 @@ export const DEMO_SCENARIOS: readonly Scenario[] = [
   {
     id: 'E',
     title: 'Invalid review',
-    blurb: 'A boilerplate response is rejected as non-substantive by the quality gates.',
-    build: () => ({
-      id: `DEMO-E${(scenarioCounters.E = (scenarioCounters.E ?? 0) + 1)}`,
+    blurb: 'Submits "Looks good" with no reason given. It fails the completeness and substantive gates and is rejected.',
+    expected: 'rejected (incomplete) · no follow-up',
+    build: (run = nextRun('E')) => ({
+      id: `DEMO-E${run}`,
       label: 'demo_invalid_review',
       channel: 'campaign',
       eligibility: 'eligible',
       abuseProfile: 'clean',
-      journey: [{ step: 'waitlist' }, { step: 'view' }, { step: 'submit', content: { section: 'overview', question: 'Looks good', whyItMatters: '' } }],
+      journey: [{ step: 'waitlist' }, { step: 'view' }, { step: 'submit', content: forRun({ section: 'overview', question: 'Looks good', whyItMatters: '' }, run) }],
     }),
   },
   {
     id: 'F',
     title: 'Abuse / bot profile',
-    blurb: 'A synthetic-bot participant is flagged at the integrity gate.',
-    build: () => ({
-      id: `DEMO-F${(scenarioCounters.F = (scenarioCounters.F ?? 0) + 1)}`,
+    blurb: 'A bot-profile participant submits a well-formed review. It is abuse-flagged: excluded from conversion, visible to operations.',
+    expected: 'abuse-flagged · no follow-up',
+    build: (run = nextRun('F')) => ({
+      id: `DEMO-F${run}`,
       label: 'demo_abuse_bot',
       channel: 'other',
       eligibility: 'eligible',
       abuseProfile: 'synthetic_bot',
-      journey: [{ step: 'waitlist' }, { step: 'view' }, { step: 'submit', content: ABUSE_BOT_CONTENT }],
+      journey: [{ step: 'waitlist' }, { step: 'view' }, { step: 'submit', content: forRun(ABUSE_BOT_CONTENT, run) }],
     }),
   },
 ];
@@ -191,7 +216,9 @@ interface LiveState {
   submitted: boolean;
   disposition?: 'qualified' | 'rejected' | 'duplicate' | 'abuse_flagged';
   rejectionReason?: string;
+  duplicateOf?: string;
   followUps: number;
+  followUpType?: string;
   prompted: boolean;
   connected: boolean;
   ackAttempted: boolean;
@@ -227,7 +254,13 @@ function liveState(ctx: CommandContext, id: ParticipantId): LiveState {
     submitted: events.some((e) => e.type === 'ReviewSubmitted'),
     disposition,
     rejectionReason: events.find((e) => e.type === 'ReviewRejected')?.reason,
+    duplicateOf: events.find(
+      (e): e is Extract<DomainEvent, { type: 'ReviewFlaggedDuplicate' }> => e.type === 'ReviewFlaggedDuplicate',
+    )?.duplicateOfReviewId,
     followUps: events.filter((e) => e.type === 'BusinessFollowUpCreated').length,
+    followUpType: events.find(
+      (e): e is Extract<DomainEvent, { type: 'BusinessFollowUpCreated' }> => e.type === 'BusinessFollowUpCreated',
+    )?.followUpType,
     prompted: events.some((e) => e.type === 'WalletPrompted'),
     connected: events.some((e) => e.type === 'WalletConnected'),
     ackAttempted: events.some((e) => e.type === 'WalletAcknowledgementAttempted'),
@@ -235,6 +268,46 @@ function liveState(ctx: CommandContext, id: ParticipantId): LiveState {
       (e): e is Extract<DomainEvent, { type: 'ReviewEvaluated' }> => e.type === 'ReviewEvaluated',
     )?.checks,
   };
+}
+
+const OUTCOME_LABELS: Record<NonNullable<LiveState['disposition']>, string> = {
+  qualified: 'Qualified',
+  rejected: 'Rejected',
+  duplicate: 'Duplicate',
+  abuse_flagged: 'Abuse-flagged',
+};
+
+const REASON_LABELS: Record<string, string> = {
+  ineligible: 'the participant is not eligible',
+  disclosure_not_viewed: 'the disclosure was not viewed before submitting',
+  disclosure_version_mismatch: 'the review was not written against the current disclosure version',
+  incomplete: 'one or more of the three required fields is empty',
+  no_section_reference: 'it does not reference a section of the disclosure',
+  non_substantive: 'it is too generic to be substantive',
+};
+
+const GATE_LABELS: Record<string, string> = {
+  eligible: 'Eligible',
+  disclosure_viewed: 'Disclosure viewed (current version)',
+  complete: 'Complete (all three fields)',
+  section_referenced: 'Disclosure section referenced',
+  substantive: 'Substantive',
+  not_duplicate: 'Not a duplicate',
+  not_abuse: 'Not abuse-flagged',
+};
+
+/** One-line, event-derived summary of a participant's outcome. */
+function outcomeSummary(state: LiveState): { text: string; ok: boolean } {
+  if (!state.disposition) return { text: 'no review evaluated', ok: false };
+  const parts: string[] = [];
+  if (state.disposition === 'duplicate') parts.push(`duplicate of ${state.duplicateOf ?? 'an earlier review'}`);
+  else if (state.disposition === 'rejected') parts.push(`rejected (${state.rejectionReason ?? 'gate failure'})`);
+  else if (state.disposition === 'abuse_flagged') parts.push('abuse-flagged');
+  else parts.push('qualified');
+  const qualified = state.disposition === 'qualified';
+  parts.push(state.followUps > 0 ? 'follow-up recorded' : qualified ? 'follow-up available' : 'no follow-up');
+  if (qualified || state.walletStatus !== 'not_attempted') parts.push(`wallet ${state.walletStatus.replace('_', ' ')}`);
+  return { text: parts.join(' · '), ok: qualified };
 }
 
 const SECTION_OPTIONS = DISCLOSURE.sections.map((s) => `<option value="${escapeHtml(s.id)}">${escapeHtml(s.title)} (${escapeHtml(s.id)})</option>`).join('');
@@ -263,7 +336,9 @@ export function renderJourney(root: HTMLElement, ctx: CommandContext, refresh: (
         <strong>${escapeHtml(s.title)}</strong>
       </div>
       <p class="muted">${escapeHtml(s.blurb)}</p>
-      <button class="btn" data-action="scenario" data-id="${escapeHtml(s.id)}" data-title="${escapeHtml(s.title)}">Run scenario ${escapeHtml(s.id)}</button>
+      <p class="scenario-expected"><span>Expected</span> ${escapeHtml(s.expected)}</p>
+      ${scenarioResult(ctx, s.id)}
+      <button class="btn" data-action="scenario" data-id="${escapeHtml(s.id)}">${scenarioRuns[s.id] ? 'Run again' : `Run scenario ${escapeHtml(s.id)}`}</button>
     </div>`,
   ).join('');
 
@@ -276,22 +351,21 @@ export function renderJourney(root: HTMLElement, ctx: CommandContext, refresh: (
   root.innerHTML = `
     <h2>Participant Journey</h2>
     <p class="muted">
-      Follow a participant through the canonical loop —
-      acquisition → waitlist → disclosure → review → qualification,
-      then the diverging business follow-up and optional (simulated) wallet acknowledgement.
-      Everything you do here appends real events to the same log the dashboard reads.
+      Acquisition → Waitlist → Disclosure → Review → Qualification. A qualified review then opens two
+      independent branches: business follow-up, and an optional simulated wallet acknowledgement.
+      Every action appends to the same synthetic event log the Operations Dashboard reads.
     </p>
 
     <div class="two-col journey-cols">
       <section aria-label="Live interactive journey">
         <div class="card">
-          <h3>Live journey <span class="muted">(${ctx.store.size()} events in log)</span></h3>
+          <h3>Live journey</h3>
           ${livePanel}
         </div>
       </section>
 
       <section aria-label="Scripted demo scenarios">
-        <h3>Scripted demo scenarios</h3>
+        <h3>Scripted scenarios A–F</h3>
         <div class="scenario-grid">${scenarios}</div>
       </section>
     </div>
@@ -304,7 +378,7 @@ export function renderJourney(root: HTMLElement, ctx: CommandContext, refresh: (
 
     <section aria-label="Live event log" class="card">
       <h3>Recent events <span class="muted">(${totalEvents} total)</span></h3>
-      <ol class="event-log mono">${log}</ol>
+      <ul class="event-log mono">${log}</ul>
     </section>
   `;
 
@@ -313,7 +387,9 @@ export function renderJourney(root: HTMLElement, ctx: CommandContext, refresh: (
       const scenario = DEMO_SCENARIOS.find((s) => s.id === btn.dataset.id);
       if (!scenario) return;
       try {
-        playJourney(ctx, scenario.build());
+        const record = scenario.build();
+        scenarioRuns[scenario.id] = record.id;
+        playJourney(ctx, record);
         refresh();
       } catch (err) {
         toast(err);
@@ -325,10 +401,17 @@ export function renderJourney(root: HTMLElement, ctx: CommandContext, refresh: (
   wireLiveActions(root, ctx, refresh);
 }
 
+function scenarioResult(ctx: CommandContext, scenarioId: string): string {
+  const id = scenarioRuns[scenarioId];
+  if (!id) return '';
+  const summary = outcomeSummary(liveState(ctx, id));
+  return `<p class="scenario-actual ${summary.ok ? 'ok' : 'bad'}" role="status"><span>Actual</span> <span class="mono">${escapeHtml(id)}</span> ${escapeHtml(summary.text)}</p>`;
+}
+
 function renderNewParticipant(ctx: CommandContext, refresh: () => void): string {
   void ctx; void refresh;
   return `
-    <p class="muted">Start a new synthetic participant and step them through the loop. The participant id, channel, eligibility and abuse profile are minted once at acquisition and cannot be changed.</p>
+    <p class="muted">Create a synthetic participant and walk them through the loop step by step. The channel is recorded for attribution only; it never affects eligibility.</p>
     <div class="form-row">
       <label for="live-channel">Channel</label>
       <select id="live-channel">${CHANNEL_OPTIONS}</select>
@@ -337,14 +420,14 @@ function renderNewParticipant(ctx: CommandContext, refresh: () => void): string 
       <label for="live-eligibility">Eligibility profile</label>
       <select id="live-eligibility">
         <option value="eligible">eligible</option>
-        <option value="ineligible">ineligible (will be rejected at qualification)</option>
+        <option value="ineligible">ineligible (rejected at the eligibility gate)</option>
       </select>
     </div>
     <div class="form-row">
       <label for="live-abuse">Abuse profile</label>
       <select id="live-abuse">
         <option value="clean">clean</option>
-        <option value="synthetic_bot">synthetic_bot (flagged at integrity gate)</option>
+        <option value="synthetic_bot">synthetic bot (abuse-flagged at review)</option>
       </select>
     </div>
     <button class="btn primary" id="live-start">Acquire participant</button>
@@ -448,7 +531,9 @@ function wireLiveActions(root: HTMLElement, ctx: CommandContext, refresh: () => 
     {
       el: '#live-reset-session',
       run: () => {
-        resetLiveSession();
+        // Only the live participant is cleared: scenario run counters must keep
+        // counting, because the event log (and every DEMO-* id in it) is kept.
+        live = undefined;
         refresh();
       },
     },
@@ -479,8 +564,8 @@ function renderLive(ctx: CommandContext, session: NonNullable<typeof live>, refr
   // to the outcome chip, so a disqualified participant lights the full stepper
   // with the outcome chip labelled by its disposition — never an all-grey stepper
   // that contradicts a red disposition badge.
-  const outcomeLabel = state.disposition ?? 'outcome';
-  const stages = ['acquired', 'waitlisted', 'disclosure_viewed', 'review_submitted', outcomeLabel];
+  const outcomeLabel = state.disposition ? OUTCOME_LABELS[state.disposition] : 'Qualification';
+  const stages = ['Acquired', 'Waitlisted', 'Disclosure read', 'Review submitted', outcomeLabel];
   const currentRank = status ? STATUS_RANK[status] : -1;
 
   const steps = stages.map((label, i) => {
@@ -492,6 +577,17 @@ function renderLive(ctx: CommandContext, session: NonNullable<typeof live>, refr
   const dispositionBadge = state.disposition
     ? `<span class="badge ${escapeHtml(state.disposition)}">${escapeHtml(state.disposition)}</span>`
     : '<span class="badge pending">in progress</span>';
+  const outcomeBanner = !state.disposition
+    ? ''
+    : state.disposition === 'qualified'
+      ? `<div class="notice ok" role="status"><strong>Qualified.</strong> Two independent next steps are now available: record a business follow-up (the conversion lane) and, separately, offer the optional wallet acknowledgement. Neither depends on the other.</div>`
+      : `<div class="notice bad" role="status"><strong>Not qualified.</strong> ${escapeHtml(
+          state.disposition === 'duplicate'
+            ? `This review matches ${state.duplicateOf ?? 'an earlier review'}; it is recorded but excluded from qualified conversion.`
+            : state.disposition === 'abuse_flagged'
+              ? 'The participant profile is abuse-flagged; the review is excluded from conversion but stays visible to operations.'
+              : `Rejected because ${REASON_LABELS[state.rejectionReason ?? ''] ?? 'a gate failed'}.`,
+        )} Business follow-up and wallet acknowledgement are only offered for qualified reviews.</div>`;
 
   const canWaitlist = !state.viewed && state.participant?.status === 'acquired';
   const canView = state.participant?.status === 'waitlisted';
@@ -527,27 +623,36 @@ function renderLive(ctx: CommandContext, session: NonNullable<typeof live>, refr
           <label for="review-why">Why it matters</label>
           <input id="review-why" type="text" placeholder="e.g. The disclosure omits custody details..." />
         </div>
+        <p class="muted small">All three fields are required to qualify. Every submission is recorded; the seven gates then decide the outcome.</p>
         <div class="row-actions">
           <button class="btn primary" id="live-submit">Submit review</button>
-          <button class="btn" id="live-dup" title="Copy the exact content U007 submitted">Paste U007 duplicate</button>
+          <button class="btn" id="live-dup" title="Submits the exact review seed participant U007 already submitted">Submit U007's review (duplicate demo)</button>
         </div>
       </div>`
     : '';
 
-  const followUpPanel = canFollowup
+  const followUpPanel = !isQualified
+    ? ''
+    : canFollowup
     ? `
       <div class="box">
+        <h4 class="branch-title">Branch 1 · Business follow-up <span class="muted">(conversion)</span></h4>
         <div class="form-row">
           <label for="followup-type">Follow-up type</label>
           <select id="followup-type">${FOLLOW_UP_TYPES.map((t) => `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join('')}</select>
         </div>
-        <button class="btn primary" id="live-followup">Create business follow-up</button>
+        <button class="btn primary" id="live-followup">Record business follow-up</button>
       </div>`
-    : '';
+    : `
+      <div class="box">
+        <h4 class="branch-title">Branch 1 · Business follow-up <span class="muted">(conversion)</span></h4>
+        <p class="done-line">✓ Follow-up recorded (${escapeHtml(state.followUpType ?? '')}). This qualified review now counts toward business conversion.</p>
+      </div>`;
 
   const walletPanel = `
     <div class="box">
-      <p class="muted">Optional simulated on-chain acknowledgement. It confers nothing and never affects qualification.</p>
+      <h4 class="branch-title">Branch 2 · On-chain acknowledgement <span class="muted">(optional, simulated)</span></h4>
+      <p class="muted">A participation record only. It confers no ownership, reserves, investment, entitlement, or reward, and never affects qualification or follow-up.</p>
       ${walletAvailable ? `<button class="btn primary" id="live-prompt">Prompt wallet</button>` : ''}
       ${walletConnectable ? `
         <div class="row-actions">
@@ -563,7 +668,13 @@ function renderLive(ctx: CommandContext, session: NonNullable<typeof live>, refr
           </select>
         </div>
         <button class="btn primary" id="live-ack">Attempt acknowledgement</button>` : ''}
-      <p class="muted">Wallet status: <strong>${escapeHtml(state.walletStatus)}</strong></p>
+      <p class="muted">Wallet status: <strong>${escapeHtml(state.walletStatus.replace('_', ' '))}</strong>${
+        state.walletStatus === 'failed'
+          ? ' — the simulated acknowledgement failed; the review stays qualified.'
+          : state.walletStatus === 'declined'
+            ? ' — declined; the review stays qualified.'
+            : ''
+      }</p>
     </div>`;
 
   const staleToggle = canView
@@ -581,14 +692,14 @@ function renderLive(ctx: CommandContext, session: NonNullable<typeof live>, refr
     ? `
       <div class="box gate-audit">
         <h4 class="gate-title">Seven qualification gates</h4>
-        <p class="muted">Every gate is evaluated and recorded on the review. The disposition above is the highest-precedence failure — all seven results are retained, so even a rejected review shows which gates passed.</p>
+        <p class="muted">All seven gates are evaluated and recorded on every review, so each outcome is auditable.</p>
         <ul class="gate-list">
           ${state.checks
             .map(
               (c) => `
             <li class="gate ${c.passed ? 'pass' : 'fail'}">
               <span class="gate-mark" aria-hidden="true">${c.passed ? '✓' : '✗'}</span>
-              <span class="gate-name mono">${escapeHtml(c.gate)}</span>
+              <span class="gate-name">${escapeHtml(GATE_LABELS[c.gate] ?? c.gate)}</span>
               <span class="gate-note muted">${escapeHtml(c.note ?? '')}</span>
             </li>`,
             )
@@ -606,12 +717,13 @@ function renderLive(ctx: CommandContext, session: NonNullable<typeof live>, refr
     </div>
 
     <ol class="steps">${steps}</ol>
+    ${outcomeBanner}
 
     ${canWaitlist ? '<button class="btn primary" id="live-waitlist">Join the waitlist</button>' : ''}
 
     ${canView ? `
       <div class="box">
-        <p class="muted">Read every section above, then confirm.</p>
+        <p class="muted">Read the disclosure (v${CURRENT_DISCLOSURE_VERSION}) further down this page, then confirm.</p>
         ${staleToggle}
         <button class="btn primary" id="live-view">Confirm I read the disclosure</button>
       </div>` : ''}
@@ -623,7 +735,7 @@ function renderLive(ctx: CommandContext, session: NonNullable<typeof live>, refr
     ${followUpPanel}
     ${isQualified ? walletPanel : ''}
 
-    <button class="btn ghost" id="live-reset-session">Reset live session (keeps log)</button>
+    <button class="btn ghost" id="live-reset-session">Start another participant</button>
   `;
 }
 

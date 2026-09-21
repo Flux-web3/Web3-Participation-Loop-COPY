@@ -401,7 +401,8 @@ select:focus {
 .event-log {
   max-height: 260px;
   overflow-y: auto;
-  padding-left: 22px;
+  list-style: none;
+  padding-left: 0;
   color: var(--muted);
   font-size: 12.5px;
 }
@@ -483,3 +484,78 @@ select:focus {
   margin-bottom: 12px;
 }
 .notice.warn p { margin: 0 0 8px; }
+
+/* --- Final UX pass: state feedback, branches, scenario results, dashboard grouping --- */
+.small { font-size: 12.5px; }
+
+.notice {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin: 10px 0;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.notice.ok { border-color: var(--good); background: rgba(63, 185, 80, 0.08); }
+.notice.bad { border-color: var(--bad); background: rgba(248, 81, 73, 0.08); }
+
+.branch-title {
+  margin: 0 0 8px;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.done-line { color: var(--good); margin: 0; }
+
+.scenario-expected,
+.scenario-actual {
+  font-size: 13px;
+  margin: 6px 0;
+}
+.scenario-expected span,
+.scenario-actual > span:first-child {
+  display: inline-block;
+  min-width: 64px;
+  color: var(--muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.scenario-actual.ok { color: var(--good); }
+.scenario-actual.bad { color: var(--bad); }
+.scenario-actual .mono { margin-right: 6px; }
+
+.gate-name { font-weight: 500; }
+
+@media (min-width: 901px) {
+  /* Keep the live participant in view while scrolling the scenario list. */
+  .journey-cols > section:first-child {
+    position: sticky;
+    top: 12px;
+  }
+}
+
+.log-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+}
+.log-status p { margin: 0; }
+
+.funnel-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.outcome-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.kpi-note { color: var(--muted); font-size: 12px; margin-top: 6px; }
+.wallet-rate { border-style: dashed; }
+
+@media (max-width: 900px) {
+  .funnel-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .outcome-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 900px) {
+  /* .journey-cols is declared after the generic .two-col breakpoint; restate it. */
+  .journey-cols { grid-template-columns: 1fr; }
+}
+.two-col > * { min-width: 0; }
