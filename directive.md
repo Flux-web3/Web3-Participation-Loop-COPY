@@ -173,18 +173,22 @@ Wallet activity must remain separate from qualified participation.
 
 ## 15. Synthetic Baseline
 
-The prototype uses synthetic simulation data.
+The prototype uses synthetic simulation data. The current seed reproduces the following verified
+baseline, measured directly from `computeDashboard` against the seeded event log (2026-09-21):
 
-Example:
+- 20 acquisition entries;
+- 18 waitlist joins;
+- 16 disclosure viewers;
+- 14 review submissions;
+- 7 qualified reviews;
+- 19 eligible participants;
+- 3 business follow-ups (from qualified reviews);
+- 4 acknowledgement attempts, 2 successes;
+- 119 total synthetic events.
 
-- 100 acquisition entries;
-- 72 waitlist joins;
-- 58 disclosure viewers;
-- 42 review submissions;
-- 26 qualified reviews;
-- 10 qualified follow-ups.
-
-These values are synthetic and are not real-world performance results.
+These values are synthetic and are not real-world performance results. An earlier illustrative
+example in this section (100/72/58/42/26/10) has been superseded by this verified reproduction;
+see §20.
 
 ## 16. Targets
 
@@ -248,7 +252,7 @@ This directive was reconciled with the corrected canonical participation model:
 - **Post-qualification branches:** business follow-up and optional on-chain acknowledgement are independent; acknowledgement does not occur after follow-up (§3).
 - **Event schema (§13):** `invitation_sent` → `acquisition_visited`; `review_started` removed (not implemented — the funnel measures `disclosure_opened → review_submitted` directly); `review_evaluated` added to record the seven-gate evaluation.
 - **Metrics (§14):** Waitlist Activation uses *Acquisition Entries*; Qualified Participation uses *Eligible Participants*.
-- **Baseline (§15):** "100 invitations" → "100 acquisition entries" (all downstream counts unchanged).
+- **Baseline (§15):** "100 invitations" → "100 acquisition entries" at the time of this reconciliation (2026-09-18); all downstream counts were unchanged then. That illustrative example was later superseded by the verified reproduced baseline (20 acquisition entries / 119 events, measured 2026-09-21) now recorded in §15.
 
 Unchanged: the primary bottleneck, the qualified-review definition, incentive limits, wallet optionality, the business-conversion definition, targets, stop rules and non-goals.
 
@@ -314,12 +318,15 @@ Record actual verification results here.
 
 Do not claim tests or checks that were not performed.
 
-All checks below were actually run in the final QA pass (2026-09-20).
+All checks below were actually run in the final QA pass (2026-09-20), and re-run and reconfirmed
+on 2026-09-21 after the disclosure-version-mismatch fix (commit `ba49f35`, see AI Corrections).
 
 - **Typecheck:** `tsc --noEmit` — clean, no errors (`prototype/`).
-- **Tests:** Vitest — 11 test files, **101/101 tests passing** (`prototype/`).
-- **Build:** `vite build` — success, 36 modules; `dist/index.html` 1.57 kB, `assets/index-CGEhekz0.css` 5.07 kB, `assets/index-CYBiedOB.js` 50.24 kB (gzip 14.58 kB).
-- **Production smoke:** `https://web3-participation-loop.vercel.app` → HTTP 200, `<title>MUST Company - Participation Loop Prototype</title>`, JS bundle `assets/index-CYBiedOB.js` served.
+- **Tests:** Vitest — 11 test files, **103/103 tests passing** (`prototype/`) — was 101/101; two
+  regression tests were added for the disclosure-version-mismatch fix.
+- **Build:** `vite build` — success; `dist/index.html` 1.59 kB, `assets/index-CNAEBgJ3.css` 5.78 kB,
+  `assets/index-Vh6GkHar.js` 51.67 kB (gzip 15.06 kB).
+- **Production smoke:** `https://web3-participation-loop.vercel.app` → HTTP 200, `<title>MUST Company - Participation Loop Prototype</title>`, JS bundle `assets/index-Vh6GkHar.js` served.
 - **Dataset integrity:** `data/synthetic-participants.csv` — 20 labelled synthetic participant records; the seed expands these into the runtime event log and funnel, validated by the `seed` test suite.
 - **Secrets scan:** `git grep` over HEAD for `eyJ…`, `sk-…`, `AKIA…`, `BEGIN … PRIVATE KEY`, `VERCEL_`, `SERVICE_ROLE` → no matches. No `process.env` / `import.meta.env` usage in tracked source. No credentials or API keys are committed. The runtime-locally-generated `prototype/.env.local` (Vercel OIDC token) is gitignored and was removed from disk; no such file is committed.
 - **Deployment layout:** the repository (`Flux-web3/web3-participation-loop`) deploys to a single Vercel project — framework `vite`, root directory `prototype`, output `dist` — at `https://web3-participation-loop.vercel.app` (HTTP 200, READY).
@@ -345,7 +352,8 @@ Record actual corrections discovered during implementation and QA.
 - **TypeScript defects caught by typecheck:** `src/dashboard.ts` used unstable key indexing into the funnel metrics map (fixed with `keyof FunnelMetrics` typing on `RATE_CARDS`); `src/journey.ts` called `createFollowUp` without the required `actor` parameter (fixed by passing `operations`).
 - **Vercel config invalid property:** `vercel.json` initially contained `rootDirectory`, which the Vercel CLI rejects ("should NOT have additional property"). `rootDirectory` is a project setting, not a `vercel.json` key; the file was corrected and the setting applied via the Vercel project API.
 - **Vercel project configuration:** the initial deployment failed because the Vercel project lacked build configuration (no root directory / framework preset), producing failing builds and 404 URLs. Fixed by configuring the project (`rootDirectory=prototype`, framework `vite`, output `dist`), redeploying successfully, and confirming HTTP 200 at `https://web3-participation-loop.vercel.app`.
-- **Dataset line-ending artifact:** `data/synthetic-participants.csv` showed a phantom modified status caused by LF/CRLF normalization; content verified identical to HEAD and restored (no data change).
+- **Dataset line-ending artifact:** `data/synthetic-participants.csv` showed a phantom modified status caused by LF/CRLF normalization; content verified identical to HEAD and restored (no data change). A `.gitattributes` entry pinning `data/*.csv` to LF was added to prevent this recurring on Windows checkouts.
+- **Disclosure-version mismatch on review submission (commit `ba49f35`):** in the live journey, the "I only read the previous version (v1)" toggle existed only on the view step, so a review could be submitted against the current disclosure version (v2) while the recorded view was against v1 — producing a spurious "viewed v1 but submitted against v2" rejection. Fixed by carrying the review's disclosure version from the participant's latest `DisclosureViewed` event, surfacing a stale-view warning, and offering a "Re-read current disclosure (v2)" action. Two regression tests were added (103/103 passing).
 
 ## Limitations
 

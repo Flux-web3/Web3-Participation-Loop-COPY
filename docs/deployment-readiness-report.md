@@ -7,13 +7,21 @@
 ## 1. Executive Summary
 
 The Web3 participation loop prototype is complete, verified, and live. The codebase passes its full
-verification stack (typecheck, 101 tests, production build), the dataset is consistent with the
+verification stack (typecheck, 103 tests, production build), the dataset is consistent with the
 documented baseline, no credentials or secrets are committed, and one working Vercel deployment is
 live and serving the current build.
 
 | Repository | Vercel project | Live alias | Status |
 | --- | --- | --- | --- |
 | `Flux-web3/web3-participation-loop` | `web3-participation-loop` | https://web3-participation-loop.vercel.app | LIVE — READY, HTTP 200 |
+
+**Recent fix (2026-09-21, commit `ba49f35`):** the live journey previously let a review be
+submitted against disclosure v2 while the participant's recorded view was v1 (the "read the
+previous version" toggle existed only on the view step), producing a spurious version-mismatch
+rejection. The review now carries the version from the participant's latest disclosure-view event,
+with a stale-view warning and a re-read action; two regression tests were added (103/103 passing).
+A `.gitattributes` entry was also added pinning `data/*.csv` to LF, eliminating a phantom
+CRLF-modified status on Windows checkouts.
 
 ## 2. Verification Performed
 
@@ -22,11 +30,11 @@ All commands were executed from `prototype/` on `main` at the shipped commit.
 | Check | Command | Result |
 | --- | --- | --- |
 | Typecheck | `npm run typecheck` (`tsc --noEmit`) | Clean — no errors |
-| Unit/integration tests | `npm test` (Vitest) | 11 files, 101/101 passing |
-| Production build | `npm run build` (`vite build`) | Success — 36 modules |
-| Build artifacts | — | `index.html` 1.57 kB, `assets/index-CGEhekz0.css` 5.07 kB, `assets/index-CYBiedOB.js` 50.24 kB (gzip 14.58 kB) |
-| Production smoke | HTTP GET `https://web3-participation-loop.vercel.app` | 200 — `MUST Company - Participation Loop Prototype`, bundle `assets/index-CYBiedOB.js` served |
-| Deployed == source | Compare live bundle vs local build | Match — live serves `index-CYBiedOB.js`, identical to the current build |
+| Unit/integration tests | `npm test` (Vitest) | 11 files, 103/103 passing |
+| Production build | `npm run build` (`vite build`) | Success |
+| Build artifacts | — | `index.html` 1.59 kB, `assets/index-CNAEBgJ3.css` 5.78 kB, `assets/index-Vh6GkHar.js` 51.67 kB (gzip 15.06 kB) |
+| Production smoke | HTTP GET `https://web3-participation-loop.vercel.app` | 200 — `MUST Company - Participation Loop Prototype`, bundle `assets/index-Vh6GkHar.js` served |
+| Deployed == source | Compare live bundle vs local build | Match — live serves `index-Vh6GkHar.js`, identical to the current build |
 | Secrets scan | `git grep` for credential patterns over HEAD | No matches; no `process.env`/`import.meta.env` in tracked source |
 | Dataset consistency | Inspect `data/synthetic-participants.csv` | 20 labelled synthetic participant records; runtime event log/funnel validated by the `seed` test suite |
 | Dependency audit | `npm audit` | Findings confined to dev/build-time dependencies, no runtime exposure (see §5) |
@@ -41,7 +49,7 @@ All commands were executed from `prototype/` on `main` at the shipped commit.
 ## 4. Deployment
 
 - The repository deploys to a single Vercel project (`web3-participation-loop`) with root directory `prototype`, framework `vite`, output `dist`.
-- The production alias `https://web3-participation-loop.vercel.app` returns HTTP 200 and serves the current build (`assets/index-CYBiedOB.js`), confirming the deployed site matches the shipped commit.
+- The production alias `https://web3-participation-loop.vercel.app` returns HTTP 200 and serves the current build (`assets/index-Vh6GkHar.js`), confirming the deployed site matches the shipped commit.
 - No `.env` / `.env.local` or credential files are committed; any locally-generated Vercel OIDC token file is gitignored.
 
 ## 5. Known Items / Accepted Risks (not blockers for this assessment)
