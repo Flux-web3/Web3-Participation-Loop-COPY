@@ -7,7 +7,7 @@
 | Primary intervention | Structured review template (variant B) vs. freeform open-text review (variant A) |
 | Primary metric | Review Qualification Rate (qualified / submitted) |
 | Decision rule | Scale on a ≥ +10 percentage point lift sustained across two cohorts with all guardrails intact |
-| Assignment | Randomized 50/50 at waitlist join; unit of randomization = reviewer |
+| Assignment | Deterministic, reproducible 50/50 at waitlist join (seeded hash), stratified by acquisition channel; unit = reviewer |
 | Minimum sample | 40 eligible per arm (cohort 1) + 40 eligible per arm (confirmatory cohort) |
 | Status | Pre-registration draft — no results yet |
 

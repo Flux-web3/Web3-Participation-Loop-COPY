@@ -127,10 +127,10 @@ AND Not Abuse Flagged
 - Rejection reasons (closed set): `ineligible`, `non_substantive`, `disclosure_version_mismatch`, `incomplete`, `no_section_reference`.
 - Duplicate submissions do not increase qualified conversion.
 
-### 7.6 Duplicate Handling — First-Writer-Wins by Content Hash
+### 7.6 Duplicate Handling — First-Valid-Writer-Wins by Content Hash
 
 - Submissions are content-hashed deterministically.
-- The **first writer wins**: the earliest submission for a given content hash is retained for potential qualification; later identical content is classified as a duplicate (`duplicate_detected`) and excluded from qualified conversion.
+- The **first valid writer wins**: the earliest *qualified* review for a given content hash owns that content; later identical content is classified as a duplicate (`duplicate_detected`) and excluded from qualified conversion. An earlier copy that was rejected or abuse-flagged does not own the content, so it cannot block a later valid review.
 - Content hashing must be deterministic so the same input always produces the same hash (see Non-Functional Expectations).
 
 ### 7.7 Abuse Classification
@@ -172,7 +172,7 @@ AND Not Abuse Flagged
 - Wallet connection is optional; declining never invalidates qualification.
 - Wallet activity is separate from qualified participation and is not business conversion.
 - Acknowledgement failure does not invalidate the review and does not affect follow-up eligibility.
-- Duplicate submissions are excluded (first writer wins by content hash); abuse-flagged records are separately classified.
+- Duplicate submissions are excluded (first valid writer wins by content hash); abuse-flagged records are separately classified.
 - Business conversion is a legitimate follow-up from a qualified review.
 - Incentives are limited to: access, reviewer status, review priority, and future participation opportunities.
 
@@ -214,7 +214,7 @@ Simulation planning target: move qualified participation toward **35–40%** whi
 
 ## 12. Integrity & Abuse Controls
 
-- Duplicate handling: deterministic content hashing with first-writer-wins exclusion.
+- Duplicate handling: deterministic content hashing with first-valid-writer-wins exclusion.
 - Abuse handling: synthetic bot/abuse profiles are flagged (`abuse_flagged`), excluded from qualified conversion, yet kept visible to operations.
 - Rejection granularity: failed reviews record an explicit reason so operations can distinguish `ineligible`, `non_substantive`, `disclosure_version_mismatch`, `incomplete`, and `no_section_reference`.
 - Funnel and baseline figures are synthetic and labelled; no fabricated research or results are presented.
