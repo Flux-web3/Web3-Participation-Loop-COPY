@@ -71,7 +71,7 @@ To be treated as substantive, a review must offer a genuine question or observat
 - The hash covers the normalized substantive content of the review.
 - **Re-tagging a different section does not evade duplicate detection.** Two reviews with identical substantive content are the same content regardless of the disclosure section chosen.
 
-### First-Writer-Wins Duplicate Rule
+### First-Valid-Writer-Wins Duplicate Rule
 
 - First *valid* writer wins: the earliest **qualified** review of a given normalized content
   (SHA-256 hash of the question and why-it-matters fields) owns that content.
