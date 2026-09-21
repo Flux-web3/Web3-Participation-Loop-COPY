@@ -18,7 +18,7 @@ describe('demo scenario grid in one store', () => {
     const ctx = createContext(store, DISCLOSURE, () => '2026-09-20T09:00:00.000Z');
 
     for (const scenario of DEMO_SCENARIOS) {
-      playJourney(ctx, scenario.build());
+      playJourney(ctx, scenario.build(1));
     }
 
     const rows = buildParticipantRows(store.all());

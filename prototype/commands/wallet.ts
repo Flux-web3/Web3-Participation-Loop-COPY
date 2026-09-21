@@ -106,6 +106,11 @@ export function attemptAcknowledgement(
   if (!hasEvent(ctx, input.participantId, 'WalletConnected')) {
     throw new CommandError('wallet_not_connected', `participant '${input.participantId}' has no connected wallet`);
   }
+  // A succeeded acknowledgement is final: a later attempt must not be able to
+  // overwrite the recorded success. Retrying after a failure stays allowed.
+  if (hasEvent(ctx, input.participantId, 'WalletAcknowledgementSucceeded')) {
+    throw new CommandError('invalid_state', `participant '${input.participantId}' already has a successful acknowledgement`);
+  }
   const n = ctx.store.byType('WalletAcknowledgementAttempted').filter((e) => e.participantId === input.participantId).length + 1;
   const acknowledgementId: AcknowledgementId = `ACK-${input.participantId}-${n}`;
   const reviewId = promptedReviewId(ctx, input.participantId);

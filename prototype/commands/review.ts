@@ -13,7 +13,7 @@ import { CommandError } from './errors';
 
 /**
  * Submit a review. This is the heart of the participation loop: it derives the
- * duplicate target (first-writer-wins over the append-only log), computes the
+ * duplicate target (first-valid-writer-wins over the append-only log), computes the
  * content hash + word count, runs the pure {@link evaluateReview} engine, and
  * appends exactly three events — ReviewSubmitted, the full ReviewEvaluated audit
  * record, and one terminal disposition event.
@@ -49,12 +49,16 @@ export function submitReview(ctx: CommandContext, input: SubmitReviewInput): Sub
   const words = wordCount(input.content);
   const submittedVersion = input.disclosureVersion ?? disclosure.version;
 
-  // First-writer-wins duplicate detection: the earliest previously-submitted
-  // review that shares this normalized-content hash owns the content.
+  // First-VALID-writer-wins duplicate detection: the earliest previously-submitted
+  // review sharing this normalized-content hash that actually QUALIFIED owns the
+  // content. A rejected / abuse-flagged / duplicate earlier holder never owns it,
+  // so it cannot block a later valid review. Reads only append-only
+  // ReviewQualified events, so history is never rewritten.
   const priorSubmitted = store.byType('ReviewSubmitted');
   const reviewNumber = priorSubmitted.filter((r) => r.participantId === participant.id).length + 1;
   const reviewId: ReviewId = `R-${participant.id}-${reviewNumber}`;
-  const duplicateOf = priorSubmitted.find((r) => r.contentHash === hash)?.reviewId;
+  const qualifiedReviewIds = new Set(store.byType('ReviewQualified').map((q) => q.reviewId));
+  const duplicateOf = priorSubmitted.find((r) => r.contentHash === hash && qualifiedReviewIds.has(r.reviewId))?.reviewId;
 
   const view = loaded.latestView;
   const result = evaluateReview({

@@ -65,8 +65,9 @@ export interface EvaluationInput {
   /** Participant's latest disclosure view before this submission, if any. */
   priorView?: { disclosureVersion: number; sectionsSeen: readonly SectionId[] };
   /**
-   * First-writer-wins result: the id of the earliest previously-accepted review
-   * sharing this content hash (undefined if this content is new). Computed by the
+   * First-valid-writer-wins result: the id of the earliest previously-QUALIFIED
+   * review sharing this content hash (undefined if no qualified review owns this
+   * content — rejected/abuse/duplicate holders never own it). Computed by the
    * caller so the engine stays pure.
    */
   duplicateOf?: ReviewId;
