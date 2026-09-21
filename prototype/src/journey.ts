@@ -186,6 +186,8 @@ interface LiveState {
   participant: ReturnType<typeof projectParticipant>;
   walletStatus: WalletAckStatus;
   viewed: boolean;
+  /** Version recorded by the most recent DisclosureViewed event. */
+  viewedVersion?: number;
   submitted: boolean;
   disposition?: 'qualified' | 'rejected' | 'duplicate' | 'abuse_flagged';
   rejectionReason?: string;
@@ -219,6 +221,9 @@ function liveState(ctx: CommandContext, id: ParticipantId): LiveState {
     participant: projectParticipant(events),
     walletStatus: deriveWalletStatus(events),
     viewed: events.some((e) => e.type === 'DisclosureViewed'),
+    viewedVersion: events
+      .filter((e): e is Extract<DomainEvent, { type: 'DisclosureViewed' }> => e.type === 'DisclosureViewed')
+      .at(-1)?.disclosureVersion,
     submitted: events.some((e) => e.type === 'ReviewSubmitted'),
     disposition,
     rejectionReason: events.find((e) => e.type === 'ReviewRejected')?.reason,
@@ -383,17 +388,24 @@ function wireLiveActions(root: HTMLElement, ctx: CommandContext, refresh: () => 
       },
     },
     {
+      el: '#live-reread',
+      run: () =>
+        live &&
+        viewDisclosure(ctx, { participantId: live.id, sectionsSeen: [...DISCLOSURE_SECTION_IDS] as SectionId[] }),
+    },
+    {
       el: '#live-submit',
       run: () => {
         if (!live) return;
         const section = (root.querySelector<HTMLSelectElement>('#review-section')?.value ?? 'overview') as SectionId;
         const question = root.querySelector<HTMLInputElement>('#review-question')?.value ?? '';
         const whyItMatters = root.querySelector<HTMLInputElement>('#review-why')?.value ?? '';
-        const stale = root.querySelector<HTMLInputElement>('#live-stale')?.checked ?? false;
+        // The review is written against the version the participant actually read.
+        // (The stale toggle only exists on the view step, so it cannot be re-read here.)
         submitReview(ctx, {
           participantId: live.id,
           content: { section, question, whyItMatters },
-          disclosureVersion: stale ? 1 : undefined,
+          disclosureVersion: liveState(ctx, live.id).viewedVersion,
         });
       },
     },
@@ -490,9 +502,19 @@ function renderLive(ctx: CommandContext, session: NonNullable<typeof live>, refr
   const walletConnectable = isQualified && state.prompted && !state.connected && state.walletStatus === 'not_attempted';
   const canAck = isQualified && state.connected && !state.ackAttempted;
 
+  const staleView = state.viewedVersion !== undefined && state.viewedVersion !== CURRENT_DISCLOSURE_VERSION;
+  const staleNotice = staleView
+    ? `
+        <div class="notice warn" role="status">
+          <p>You confirmed reading <strong>v${escapeHtml(String(state.viewedVersion))}</strong>, but the current disclosure is <strong>v${CURRENT_DISCLOSURE_VERSION}</strong>. A review submitted now is evaluated against v${escapeHtml(String(state.viewedVersion))} and will fail the version gate.</p>
+          <button class="btn" id="live-reread">Re-read current disclosure (v${CURRENT_DISCLOSURE_VERSION})</button>
+        </div>`
+    : '';
+
   const reviewForm = state.viewed && !state.submitted
     ? `
       <div class="box">
+        ${staleNotice}
         <div class="form-row">
           <label for="review-section">Disclosure section your review references</label>
           <select id="review-section">${SECTION_OPTIONS}</select>
@@ -548,7 +570,7 @@ function renderLive(ctx: CommandContext, session: NonNullable<typeof live>, refr
     ? `
     <label class="check-row">
       <input type="checkbox" id="live-stale" />
-      <span>I only read the previous version (v1) — demonstrates the disclosure-version-mismatch gate</span>
+      <span>Demo only: record that I read the <em>previous</em> version (v1) instead of v${CURRENT_DISCLOSURE_VERSION} — triggers the disclosure-version gate</span>
     </label>`
     : '';
 
@@ -591,7 +613,7 @@ function renderLive(ctx: CommandContext, session: NonNullable<typeof live>, refr
       <div class="box">
         <p class="muted">Read every section above, then confirm.</p>
         ${staleToggle}
-        <button class="btn primary" id="live-view">I read the disclosure (v${CURRENT_DISCLOSURE_VERSION})</button>
+        <button class="btn primary" id="live-view">Confirm I read the disclosure</button>
       </div>` : ''}
 
     ${reviewForm}

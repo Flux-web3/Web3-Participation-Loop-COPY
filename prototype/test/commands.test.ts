@@ -186,6 +186,27 @@ describe('qualification dispositions', () => {
     expect(statusOf(c, 'U001')).toBe('disqualified');
   });
 
+  it('qualifies a review after the participant re-reads the current version following a stale view', () => {
+    const c = ctx();
+    acceptAcquisition(c, { participantId: 'U001', channel: 'direct', eligibility: 'eligible', abuseProfile: 'clean' });
+    registerWaitlist(c, { participantId: 'U001' });
+    viewDisclosure(c, { participantId: 'U001', sectionsSeen: ALL_SECTIONS, disclosureVersion: 1 });
+    viewDisclosure(c, { participantId: 'U001', sectionsSeen: ALL_SECTIONS });
+    const r = submitReview(c, { participantId: 'U001', content: contentFor('reread'), disclosureVersion: DISCLOSURE.version });
+    expect(r.result.disposition).toBe('qualified');
+  });
+
+  it('rejects a review written against the stale version the participant actually read', () => {
+    const c = ctx();
+    acceptAcquisition(c, { participantId: 'U001', channel: 'direct', eligibility: 'eligible', abuseProfile: 'clean' });
+    registerWaitlist(c, { participantId: 'U001' });
+    viewDisclosure(c, { participantId: 'U001', sectionsSeen: ALL_SECTIONS, disclosureVersion: 1 });
+    const r = submitReview(c, { participantId: 'U001', content: contentFor('stale'), disclosureVersion: 1 });
+    expect(r.result.disposition).toBe('rejected');
+    expect(r.result.primaryReason).toBe('disclosure_version_mismatch');
+    expect(r.result.checks.find((g) => g.gate === 'disclosure_viewed')?.note).toBe('submitted against outdated v1 (current v2)');
+  });
+
   it('flags the second identical review as a duplicate of the first (first-writer-wins)', () => {
     const c = ctx();
     const shared = contentFor('shared');

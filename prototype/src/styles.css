@@ -475,3 +475,11 @@ select:focus {
     grid-column: 2;
   }
 }
+/* Stale-disclosure warning inside the live review form */
+.notice.warn {
+  border: 1px solid var(--warn);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+}
+.notice.warn p { margin: 0 0 8px; }
